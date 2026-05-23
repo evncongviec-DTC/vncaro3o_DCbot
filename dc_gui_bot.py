@@ -311,7 +311,7 @@ class BotThread(QThread):
             
             self.page = page  # Lưu reference cho GUI (overlay)
 
-            self.log("\n>>> SẴN SÀNG! BẤM [BẮT ĐẦU BOT] <<<\n")
+            self.log("\n>>> SẴN SÀNG! VUI LÒNG BẤM [BẮT ĐẦU] Ở BÊN TRÁI <<<\n")
 
             prev_total_moves = -1  # Theo dõi tổng quân để biết đối thủ đã đi chưa
 
@@ -757,6 +757,12 @@ class BotThread(QThread):
                     self.log(f"  ⚠️ Lỗi: {str(e)[:80]}")
                     print(traceback.format_exc())
                     time.sleep(1)
+            
+            # Đảm bảo đóng trình duyệt an toàn khi kết thúc Thread
+            try:
+                if 'browser_context' in locals() and browser_context:
+                    browser_context.close()
+            except: pass
 
 # =============================================
 # GUI WINDOW
@@ -921,6 +927,11 @@ class BotWindow(QMainWindow):
         self.bot.history_signal.connect(self.update_history_ui)
         self.bot.side_detected.connect(self.update_side_ui)
         self.bot.stopped_signal.connect(self.bot_stopped)
+        
+        # Initialize UI state based on mode
+        self.cb_mode.currentIndexChanged.connect(self.on_mode_changed)
+        self.on_mode_changed(self.cb_mode.currentIndex())
+        
         self.bot.start()
 
     def show_security_info(self):
@@ -1093,9 +1104,6 @@ class BotWindow(QMainWindow):
         self.bot.mcts_time = self.spin_delay.value()
         self.bot.simulations = self.spin_level.value() * 400
         self.bot.mode = "ai" if self.cb_mode.currentIndex() == 1 else "manual"
-        
-        self.cb_mode.currentIndexChanged.connect(self.on_mode_changed)
-        self.on_mode_changed(self.cb_mode.currentIndex())
 
     def on_mode_changed(self, index):
         if index == 0: # Manual mode
@@ -1109,7 +1117,10 @@ class BotWindow(QMainWindow):
         if not self.bot.active:
             self.update_params()
             self.bot.active = True
-            self.btn_go.setText("TẠM DỪNG BOT")
+            if self.cb_mode.currentIndex() == 0:
+                self.btn_go.setText("TẠM DỪNG")
+            else:
+                self.btn_go.setText("TẠM DỪNG BOT")
             self.btn_go.setStyleSheet("background:#dc3545;color:white;font-weight:bold;font-size:18px;padding:15px;")
             self.append_log("\n[▶] BOT HOẠT ĐỘNG!")
         else:
@@ -1117,7 +1128,10 @@ class BotWindow(QMainWindow):
 
     def bot_stopped(self):
         self.bot.active = False
-        self.btn_go.setText("BẮT ĐẦU BOT")
+        if self.cb_mode.currentIndex() == 0:
+            self.btn_go.setText("BẮT ĐẦU")
+        else:
+            self.btn_go.setText("BẮT ĐẦU BOT")
         self.btn_go.setStyleSheet("background:#28a745;color:white;font-weight:bold;font-size:18px;padding:15px;")
         self.append_log("\n[⏸️] DỪNG BOT!")
 
@@ -1149,7 +1163,8 @@ class BotWindow(QMainWindow):
 
     def closeEvent(self, event):
         self.bot.is_running = False
-        self.bot.wait(2000)
+        self.bot.active = False
+        self.bot.wait(4000)
         event.accept()
 
 if __name__ == '__main__':
