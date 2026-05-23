@@ -918,7 +918,6 @@ class BotWindow(QMainWindow):
         # Live update signals
         for w in [self.chk_autofarm, self.rb_x, self.rb_o]:
             w.toggled.connect(self.update_params) if hasattr(w,'toggled') else w.stateChanged.connect(self.update_params)
-        self.spin_level.valueChanged.connect(self.update_params)
         self.spin_delay.valueChanged.connect(self.update_params)
 
         # Thread
@@ -1096,7 +1095,7 @@ class BotWindow(QMainWindow):
         self.lbl_level_desc.setText(f"{desc} ({t}s, {s} sims)")
         self.update_params()
 
-    def update_params(self):
+    def update_params(self, *args):
         lv = self.spin_level.value()
         t, s, _ = self.LEVEL_MAP.get(lv, (10, 400, ""))
         self.bot.play_as_x = self.rb_x.isChecked()
