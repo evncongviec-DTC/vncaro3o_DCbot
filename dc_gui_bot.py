@@ -17,11 +17,9 @@ from PyQt5.QtGui import QFont, QTextCursor
 # SpinBox không bị scroll/nhảy focus khi ấn mũi tên
 class NoScrollSpinBox(QSpinBox):
     def wheelEvent(self, e): e.ignore()
-    def focusInEvent(self, e): super().focusInEvent(e)
 
 class NoScrollDoubleSpinBox(QDoubleSpinBox):
     def wheelEvent(self, e): e.ignore()
-    def focusInEvent(self, e): super().focusInEvent(e)
 
 from dc_engine import DCEngine
 from game_rules import CaroGame
