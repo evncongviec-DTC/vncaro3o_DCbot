@@ -180,7 +180,10 @@ class BotThread(QThread):
             if(cells.length !== 361) return null;
             let data = [];
             for(let i=0; i<361; i++) {
-                let text = cells[i].innerText.trim().toUpperCase();
+                let clone = cells[i].cloneNode(true);
+                let stones = clone.querySelectorAll('.dc-stone, .dc-coord');
+                stones.forEach(s => s.remove());
+                let text = clone.innerText.trim().toUpperCase();
                 let bg = window.getComputedStyle(cells[i]).backgroundColor;
                 let isN = cells[i].classList.contains('neutral') || cells[i].classList.contains('forb') || 
                           bg === 'rgb(51, 51, 51)' || bg === 'rgb(34, 34, 34)' ||
@@ -318,6 +321,52 @@ class BotThread(QThread):
                 if not self.active:
                     self.phan_tich_ngam_thread = None
                     # Vẫn xử lý JS commands khi không active
+                    if self.page:
+                        check_init = self.page.evaluate("typeof window.drawAllNumbers !== 'undefined'")
+                        if not check_init:
+                            self.page.evaluate('''
+                                window.showCoords = false;
+                                window.drawAllNumbers = function() {
+                                    var cells = document.querySelectorAll('.cell');
+                                    if(cells.length !== 361) return;
+                                    for(var i=0; i<361; i++){
+                                        var cell = cells[i];
+                                        cell.style.position = 'relative';
+                                        cell.style.color = 'transparent';
+                                        var old = cell.querySelectorAll('.dc-stone, .dc-coord');
+                                        old.forEach(function(e){ e.remove(); });
+                                        if(window.showCoords) {
+                                            var r=Math.floor(i/19), c=i%19;
+                                            var cols = 'ABCDEFGHJKLMNOPQRST';
+                                            var id = cols[c] + (19 - r);
+                                            var lbl = document.createElement('div');
+                                            lbl.className = 'dc-coord';
+                                            lbl.textContent = id;
+                                            lbl.style.cssText = 'position:absolute; top:2px; left:2px; font-size:9px; font-weight:bold; color:#ff0000; z-index:10; pointer-events:none; opacity:0.8;';
+                                            cell.appendChild(lbl);
+                                        }
+                                    }
+                                    if(window.botMoveHistory) {
+                                        for(var m=0; m<window.botMoveHistory.length; m++) {
+                                            var move = window.botMoveHistory[m];
+                                            var idx = move[0]*19 + move[1];
+                                            var who = move[2];
+                                            var cell = cells[idx];
+                                            if(cell) {
+                                                var stone = document.createElement('div');
+                                                stone.className = 'dc-stone';
+                                                var isBlack = (who === 1);
+                                                var bg = isBlack ? 'radial-gradient(circle at 30% 30%, #555, #000)' : 'radial-gradient(circle at 30% 30%, #fff, #ccc)';
+                                                var fg = isBlack ? '#fff' : '#000';
+                                                var border = (m === window.botMoveHistory.length - 1) ? '2px solid red' : (isBlack ? '1px solid #000' : '1px solid #999');
+                                                stone.style.cssText = 'position:absolute; width:80%; height:80%; top:10%; left:10%; border-radius:50%; background:' + bg + '; border:' + border + '; display:flex; align-items:center; justify-content:center; color:' + fg + '; font-size:12px; font-weight:bold; font-family:Arial; z-index:5; pointer-events:none; box-shadow: 2px 2px 4px rgba(0,0,0,0.4);';
+                                                stone.textContent = (m + 1).toString();
+                                                cell.appendChild(stone);
+                                            }
+                                        }
+                                    }
+                                };
+                            ''')
                     if self.page and self.pending_js:
                         for js in self.pending_js:
                             try: self.page.evaluate(js)
@@ -431,8 +480,8 @@ class BotThread(QThread):
                         if getattr(self, 'match_saved', False):
                             # Đã lưu log cho ván này rồi, chỉ chờ tìm trận mới
                             if self.auto_farm:
-                                time.sleep(1)
-                                page.evaluate('let b=Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Tìm trận") || b.textContent.includes("Tìm đối thủ") || b.textContent.includes("Chơi tiếp") || b.textContent.includes("Chơi với máy") || b.textContent.includes("Đánh với máy"));if(b)b.click();')
+                                page.evaluate('let closeBtn = document.querySelector(".ant-modal-close"); if(closeBtn) closeBtn.click();')
+                                page.evaluate('let b=Array.from(document.querySelectorAll("button, div, span, a")).find(b=>b.textContent && (b.textContent.includes("Tìm trận") || b.textContent.includes("Tìm đối thủ") || b.textContent.includes("Chơi tiếp") || b.textContent.includes("Chơi với máy") || b.textContent.includes("Đánh với máy")));if(b)b.click();')
                             continue
                             
                         self.match_saved = True
@@ -545,7 +594,9 @@ class BotThread(QThread):
                             time.sleep(4)
                             if not self.active: continue
                             self.log("🚀 Tìm trận mới!")
-                            page.evaluate('let b=Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Tìm trận") || b.textContent.includes("Tìm đối thủ") || b.textContent.includes("Chơi tiếp") || b.textContent.includes("Chơi với máy") || b.textContent.includes("Đánh với máy"));if(b)b.click();')
+                            page.evaluate('let closeBtn = document.querySelector(".ant-modal-close"); if(closeBtn) closeBtn.click();')
+                            time.sleep(1)
+                            page.evaluate('let b=Array.from(document.querySelectorAll("button, div, span, a")).find(b=>b.textContent && (b.textContent.includes("Tìm trận") || b.textContent.includes("Tìm đối thủ") || b.textContent.includes("Chơi tiếp") || b.textContent.includes("Chơi với máy") || b.textContent.includes("Đánh với máy")));if(b)b.click();')
                             self.last_board = None
                             prev_total_moves = -1
                             time.sleep(3)
@@ -1036,46 +1087,27 @@ class BotWindow(QMainWindow):
             self.append_log("[!] Chưa kết nối Chrome!")
             self.btn_overlay.setChecked(False)
             return
-        opa = self.slider_opa.value() / 100.0
         if checked:
             self.btn_overlay.setStyleSheet("background:#17a2b8;color:white;font-weight:bold;padding:8px;")
-            self.btn_overlay.setText("👁️ Ẩn số ô")
+            self.btn_overlay.setText("👀 Ẩn tọa độ")
             js = (
-                "(function(){"
-                "window.drawAllNumbers = function() {"
-                "  var old = document.getElementById('bot-overlay-container'); if(old) old.remove();"
-                "  var container = document.createElement('div');"
-                "  container.id = 'bot-overlay-container';"
-                "  container.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;';"
-                "  document.body.appendChild(container);"
-                "  var cells = document.querySelectorAll('.cell');"
-                "  for(var i=0; i<cells.length; i++){"
-                "    var rect = cells[i].getBoundingClientRect();"
-                "    var r=Math.floor(i/19), c=i%19;"
-                "    var cols = 'ABCDEFGHJKLMNOPQRST';"
-                "    var id = cols[c] + (19 - r);"
-                "    var lbl = document.createElement('div');"
-                "    lbl.textContent = id;"
-                "    lbl.style.cssText = 'position:absolute; left:' + (rect.left + window.scrollX) + 'px; top:' + (rect.top + window.scrollY) + 'px; width:' + rect.width + 'px; height:' + rect.height + 'px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; color:#000; font-family:Consolas; opacity:" + str(opa) + ";';"
-                "    container.appendChild(lbl);"
-                "  }"
-                "};"
-                "window.drawAllNumbers();"
-                "})()"
+                "window.showCoords = true;"
+                "if(window.drawAllNumbers) window.drawAllNumbers();"
             )
             self.bot.pending_js.append(js)
-            self.append_log("[OK] Đã hiện số ô (kiểu Piskvork) cho toàn bàn cờ!")
+            self.append_log("[OK] Đã hiện tọa độ (A1-T19) trên bàn cờ!")
         else:
             self.btn_overlay.setStyleSheet("background:#6c757d;color:white;font-weight:bold;padding:8px;")
-            self.btn_overlay.setText("👁️ Hiện số ô")
-            self.bot.pending_js.append("var old = document.getElementById('bot-overlay-container'); if(old) old.remove();")
-            self.append_log("[OK] Đã ẩn số ô.")
+            self.btn_overlay.setText("👁️ Hiện tọa độ")
+            js = (
+                "window.showCoords = false;"
+                "if(window.drawAllNumbers) window.drawAllNumbers();"
+            )
+            self.bot.pending_js.append(js)
+            self.append_log("[OK] Đã ẩn tọa độ.")
 
     def change_overlay_opacity(self, val):
         self.lbl_opa.setText(f"{val}%")
-        if self.btn_overlay.isChecked() and self.bot.page:
-            opa = val / 100.0
-            self.bot.pending_js.append(f'document.querySelectorAll(".bot-coord-overlay").forEach(function(e){{e.style.opacity="{opa}"}})')
 
     # Bảng quy đổi Cấp độ -> Thông số kỹ thuật (Max 55s vì luật VnCaro giới hạn 60s/nước)
     # VCF/VCT tìm thấy bẫy = đánh ngay (0.5s), chỉ MCTS mới dùng hết thời gian
