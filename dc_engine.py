@@ -62,7 +62,7 @@ class DCEngine:
             # Nếu sếp dùng card Nvidia thì thử file trt
             self.exe_path = self.exe_path.replace("opencl", "trt")
             if not os.path.exists(self.exe_path):
-                print(f"❌ KHÔNG TÌM THẤY file {self.exe_path}! Sếp cần kiểm tra lại đường dẫn.")
+                print(f"❌ KHÔNG TÌM THẤY file engine (Bộ não AI)! Sếp cần kiểm tra lại đường dẫn.")
         
     def load_model(self, model_path):
         print(f"🤖 Đang khởi động DC_bot Engine với model: {model_path} ...")
