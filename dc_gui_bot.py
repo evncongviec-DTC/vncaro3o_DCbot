@@ -24,7 +24,6 @@ class NoScrollDoubleSpinBox(QDoubleSpinBox):
     def focusInEvent(self, e): super().focusInEvent(e)
 
 from dc_engine import DCEngine
-sys.path.append(r"E:\CODE\game caro\HybridEngine")
 from game_rules import CaroGame
 
 # =============================================
