@@ -93,7 +93,7 @@ class DCEngine:
         if not self.exe_path or not os.path.exists(self.exe_path):
             print(f"❌ KHÔNG TÌM THẤY file engine (Bộ não C++)! Đảm bảo thư mục 'engine' (chứa gom20x_opencl.exe hoặc caro20x_opencl.exe) nằm CÙNG CHỖ với file Bot.")
         
-    def load_model(self, model_path):
+    def load_model(self, model_path, max_visits=None):
         if not os.path.exists(self.exe_path):
             print("❌ BỎ QUA NẠP MODEL: Không có file engine C++.")
             self.model_loaded = False
@@ -103,6 +103,17 @@ class DCEngine:
         engine_name = os.path.basename(self.exe_path)
         print(f"🤖 Đang khởi động {engine_name} với model: {model_path} ...")
         cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gtp.cfg")
+        
+        if max_visits is not None and os.path.exists(cfg_path):
+            try:
+                with open(cfg_path, 'r', encoding='utf-8') as f:
+                    cfg_content = f.read()
+                import re
+                cfg_content = re.sub(r'maxVisits\s*=\s*\d+', f'maxVisits = {max_visits}', cfg_content)
+                with open(cfg_path, 'w', encoding='utf-8') as f:
+                    f.write(cfg_content)
+            except Exception as e:
+                print(f"❌ Lỗi khi cập nhật gtp.cfg: {e}")
         
         cmd = [
             self.exe_path,
@@ -119,7 +130,6 @@ class DCEngine:
                 cmd,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
                 text=True,
                 encoding='utf-8',
                 errors='ignore',
