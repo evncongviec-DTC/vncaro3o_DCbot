@@ -268,23 +268,33 @@ class BotThread(QThread):
 
         with sync_playwright() as p:
             try:
-                self.log("Đang dò Chrome (Port 9222)...")
-                browser = p.chromium.connect_over_cdp("http://localhost:9222")
-                self.log("[OK] Kết nối Chrome thành công!")
-            except:
-                self.log("❌ Không tìm thấy Chrome! Chạy 1_Mo_Chrome_Auto.bat trước!")
-                return
-
-            page = None
-            for ctx in browser.contexts:
-                for pg in ctx.pages:
+                self.log("Đang mở Chrome An Toàn (Sandbox)...")
+                os.makedirs("chrome_profile", exist_ok=True)
+                user_data_dir = os.path.abspath("chrome_profile")
+                
+                browser_context = p.chromium.launch_persistent_context(
+                    user_data_dir=user_data_dir,
+                    channel="chrome",
+                    headless=False,
+                    no_viewport=True,
+                    args=["--start-maximized"]
+                )
+                self.log("[OK] Mở Chrome thành công!")
+                
+                page = None
+                for pg in browser_context.pages:
                     if "vncaro.com" in pg.url: page = pg; break
-                if page: break
-            if not page:
-                page = browser.contexts[0].pages[0]
-                page.goto("https://vncaro.com/")
-            else:
-                self.log("[OK] Đã ghim Tab VnCaro!")
+                if not page:
+                    if len(browser_context.pages) > 0:
+                        page = browser_context.pages[0]
+                    else:
+                        page = browser_context.new_page()
+                    page.goto("https://vncaro.com/")
+                else:
+                    self.log("[OK] Đã ghim Tab VnCaro!")
+            except Exception as e:
+                self.log(f"❌ Lỗi mở Chrome: {e}")
+                return
             
             self.page = page  # Lưu reference cho GUI (overlay)
 
@@ -318,20 +328,18 @@ class BotThread(QThread):
                     found_page = None
                     
                     try:
-                        for ctx in browser.contexts:
-                            for pg in ctx.pages:
-                                if "vncaro.com" in pg.url:
-                                    for frame in pg.frames:
-                                        try:
-                                            cnt = frame.evaluate("document.querySelectorAll('.cell').length")
-                                            if cnt > 0:
-                                                cell_count = cnt
-                                                target_frame = frame
-                                                found_page = pg
-                                                break
-                                        except: pass
-                                    if target_frame: break
-                            if target_frame: break
+                        for pg in browser_context.pages:
+                            if "vncaro.com" in pg.url:
+                                for frame in pg.frames:
+                                    try:
+                                        cnt = frame.evaluate("document.querySelectorAll('.cell').length")
+                                        if cnt > 0:
+                                            cell_count = cnt
+                                            target_frame = frame
+                                            found_page = pg
+                                            break
+                                    except: pass
+                                if target_frame: break
                     except: pass
                     
                     # Cập nhật lại page nếu có thay đổi tab
