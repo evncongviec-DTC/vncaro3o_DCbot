@@ -1,0 +1,24 @@
+=========================================
+HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY DC_BOT (VNCARO)
+=========================================
+
+Để phần mềm có thể chạy trên MỌI MÁY TÍNH (dù là card Nvidia, AMD hay Intel), bạn cần sắp xếp các thư mục theo đúng cấu trúc như sau:
+
+Thư mục chính (Ví dụ: AutoBot_VnCaro)
+│
+├── Vncaro3o_DCbot.exe          <-- (Bot Chính - Nằm ngoài cùng)
+│
+├── engine/                     <-- (Thư mục chứa bộ não C++)
+│   ├── caro20x_opencl.exe      <-- (File bắt buộc phải có cho mọi loại card đồ họa)
+│   ├── caro20x_trt.exe         <-- (Tuỳ chọn: Tối ưu cho card Nvidia RTX)
+│   ├── cublas64_12.dll         <-- (Và các file thư viện .dll đi kèm)
+│   └── ... 
+│
+└── models/                     <-- (Thư mục chứa trí tuệ AI)
+    └── tworule_20x_b18.bin.gz  <-- (File mô hình mạng Neural)
+
+-----------------------------------------
+CHÚ Ý QUAN TRỌNG:
+1. File chạy gốc hiện tại ưu tiên sử dụng bản OpenCL (caro20x_opencl.exe). Bản này dùng được cho đa số các dòng máy và card màn hình phổ thông. Nếu không tìm thấy opencl, Bot sẽ tự động thử tìm bản TensorRT (caro20x_trt.exe).
+2. Khi copy Bot sang máy khác, BẮT BUỘC phải copy cả thư mục "engine" và "models". Nếu chỉ copy mỗi file .exe, phần mềm sẽ báo lỗi "Không tìm thấy file engine".
+3. Chỉ cần chạy thẳng file Vncaro3o_DCbot.exe, phần mềm sẽ tự mở một trình duyệt Chrome an toàn để chơi. Không cần file .bat phụ trợ nào khác.
