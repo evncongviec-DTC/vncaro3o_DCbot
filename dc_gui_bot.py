@@ -886,7 +886,7 @@ class BotWindow(QMainWindow):
 
         # Cấu hình maxVisits thủ công
         h_visits = QHBoxLayout()
-        self.lbl_max_visits = QLabel("Sức mạnh tối đa (maxVisits):")
+        self.lbl_max_visits = QLabel("Số vòng nghĩ tối đa:")
         self.spin_max_visits = NoScrollSpinBox()
         self.spin_max_visits.setRange(10, 50000)
         self.spin_max_visits.setValue(500)
