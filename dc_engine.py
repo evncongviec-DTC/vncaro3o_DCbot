@@ -49,7 +49,7 @@ def check_immediate_threat(board, player):
     return None
 
 class DCEngine:
-    def __init__(self, rule_type=3, vcf_time=3.0, vct_time=5.0, mcts_simulations=400):
+    def __init__(self, rule_type=3, vcf_time=3.0, vct_time=5.0, mcts_simulations=400, custom_exe_path=None):
         self.rule_type = rule_type
         self.mcts_simulations = mcts_simulations
         self.model_loaded = False
@@ -71,21 +71,24 @@ class DCEngine:
                     engine_dir = fallback_engine
                     
         self.exe_path = ""
-        possible_engines = [
-            "gom20x_opencl.exe",
-            "gom20x_trt.exe",
-            "caro20x_opencl.exe",
-            "caro20x_trt.exe",
-            "gom15x_opencl.exe",
-            "gom15x_trt.exe"
-        ]
-        
-        if os.path.exists(engine_dir):
-            for eng in possible_engines:
-                test_path = os.path.join(engine_dir, eng)
-                if os.path.exists(test_path):
-                    self.exe_path = test_path
-                    break
+        if custom_exe_path and os.path.exists(custom_exe_path):
+            self.exe_path = custom_exe_path
+        else:
+            possible_engines = [
+                "gom20x_opencl.exe",
+                "gom20x_trt.exe",
+                "caro20x_opencl.exe",
+                "caro20x_trt.exe",
+                "gom15x_opencl.exe",
+                "gom15x_trt.exe"
+            ]
+            
+            if os.path.exists(engine_dir):
+                for eng in possible_engines:
+                    test_path = os.path.join(engine_dir, eng)
+                    if os.path.exists(test_path):
+                        self.exe_path = test_path
+                        break
                     
         if not self.exe_path or not os.path.exists(self.exe_path):
             print(f"❌ KHÔNG TÌM THẤY file engine (Bộ não C++)! Đảm bảo thư mục 'engine' (chứa gom20x_opencl.exe hoặc caro20x_opencl.exe) nằm CÙNG CHỖ với file Bot.")

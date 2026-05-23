@@ -93,6 +93,7 @@ class BotThread(QThread):
         self.page = None
         self.pending_js = []  # JS commands từ GUI gửi sang Bot thread
         self.stats = {'X': 0, 'O': 0, 'Hòa': 0}  # Thống kê kết quả trận đấu
+        self.custom_engine_path = None
 
     def log(self, text):
         self.log_signal.emit(text)
@@ -239,7 +240,7 @@ class BotThread(QThread):
             return
 
         self.log("Khởi tạo Não bộ AI (HybridEngine)...")
-        self.engine = DCEngine(rule_type=3, mcts_simulations=self.simulations)
+        self.engine = DCEngine(rule_type=3, mcts_simulations=self.simulations, custom_exe_path=self.custom_engine_path)
 
         # Auto-load model mới nhất
         best, bnum = None, -1
@@ -874,6 +875,14 @@ class BotWindow(QMainWindow):
         self.lbl_model.setStyleSheet("color: #007bff; font-weight: bold;")
         hm.addWidget(self.btn_model); hm.addWidget(self.lbl_model)
         l2.addLayout(hm)
+        
+        he = QHBoxLayout()
+        self.btn_engine = QPushButton("Chọn File Engine (.exe)")
+        self.btn_engine.clicked.connect(self.choose_engine)
+        self.lbl_engine = QLabel("Auto (Mặc định)")
+        self.lbl_engine.setStyleSheet("color: #28a745; font-weight: bold;")
+        he.addWidget(self.btn_engine); he.addWidget(self.lbl_engine)
+        l2.addLayout(he)
 
         # Cấp độ AI (1-10)
         h_lv = QHBoxLayout()
@@ -1074,6 +1083,15 @@ class BotWindow(QMainWindow):
             webbrowser.open('file://' + path)
         else:
             QMessageBox.warning(self, "Lỗi", "Không tìm thấy file index.html")
+
+    def choose_engine(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Chọn file Engine .exe", "", "Executable Files (*.exe);;All Files (*)")
+        if path:
+            self.bot.custom_engine_path = path
+            self.lbl_engine.setText(os.path.basename(path))
+            self.append_log(f"\n[OK] Đã chọn Engine: {os.path.basename(path)}")
+            if self.bot.engine:
+                self.append_log("[!] Lưu ý: Bạn cần khởi động lại quá trình 'BẮT ĐẦU BOT' để áp dụng Engine mới!")
 
     def choose_model(self):
         path, _ = QFileDialog.getOpenFileName(self, "Chọn File Não", "", "DC_bot Model (*.bin.gz);;All Files (*.*)")
