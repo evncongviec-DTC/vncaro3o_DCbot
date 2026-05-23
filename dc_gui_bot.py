@@ -413,7 +413,7 @@ class BotThread(QThread):
                             # Đã lưu log cho ván này rồi, chỉ chờ tìm trận mới
                             if self.auto_farm:
                                 time.sleep(1)
-                                page.evaluate('let b=Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Tìm trận"));if(b)b.click();')
+                                page.evaluate('let b=Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Tìm trận") || b.textContent.includes("Tìm đối thủ") || b.textContent.includes("Chơi tiếp") || b.textContent.includes("Chơi với máy") || b.textContent.includes("Đánh với máy"));if(b)b.click();')
                             continue
                             
                         self.match_saved = True
@@ -526,7 +526,7 @@ class BotThread(QThread):
                             time.sleep(4)
                             if not self.active: continue
                             self.log("🚀 Tìm trận mới!")
-                            page.evaluate('let b=Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Tìm trận") || b.textContent.includes("Tìm đối thủ") || b.textContent.includes("Chơi tiếp"));if(b)b.click();')
+                            page.evaluate('let b=Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Tìm trận") || b.textContent.includes("Tìm đối thủ") || b.textContent.includes("Chơi tiếp") || b.textContent.includes("Chơi với máy") || b.textContent.includes("Đánh với máy"));if(b)b.click();')
                             self.last_board = None
                             prev_total_moves = -1
                             time.sleep(3)
@@ -766,7 +766,7 @@ class BotWindow(QMainWindow):
         h_mode = QHBoxLayout()
         h_mode.addWidget(QLabel("Chế độ chơi:"))
         self.cb_mode = QComboBox()
-        self.cb_mode.addItems(["Chơi bằng Model AI", "Chơi thủ công (Ghi Log)"])
+        self.cb_mode.addItems(["Chơi thủ công (Ghi Log)", "Chơi bằng Model AI"])
         self.cb_mode.setStyleSheet("font-weight: bold; padding: 5px;")
         h_mode.addWidget(self.cb_mode)
 
@@ -1071,7 +1071,7 @@ class BotWindow(QMainWindow):
         self.bot.auto_farm = self.chk_autofarm.isChecked()
         self.bot.mcts_time = self.spin_delay.value()
         self.bot.simulations = self.spin_level.value() * 400
-        self.bot.mode = "ai" if self.cb_mode.currentIndex() == 0 else "manual"
+        self.bot.mode = "ai" if self.cb_mode.currentIndex() == 1 else "manual"
 
     def toggle_bot(self):
         if not self.bot.active:
