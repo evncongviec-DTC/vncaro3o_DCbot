@@ -326,15 +326,23 @@ class BotThread(QThread):
                         if not check_init:
                             self.page.evaluate('''
                                 window.showCoords = false;
+                                window.useGomokuUI = true;
                                 window.drawAllNumbers = function() {
                                     var cells = document.querySelectorAll('.cell');
                                     if(cells.length !== 361) return;
                                     for(var i=0; i<361; i++){
                                         var cell = cells[i];
                                         cell.style.position = 'relative';
-                                        cell.style.color = 'transparent';
+                                        
                                         var old = cell.querySelectorAll('.dc-stone, .dc-coord');
                                         old.forEach(function(e){ e.remove(); });
+                                        
+                                        if(window.useGomokuUI) {
+                                            cell.style.color = 'transparent';
+                                        } else {
+                                            cell.style.color = '';
+                                        }
+                                        
                                         if(window.showCoords) {
                                             var r=Math.floor(i/19), c=i%19;
                                             var cols = 'ABCDEFGHJKLMNOPQRST';
@@ -346,7 +354,7 @@ class BotThread(QThread):
                                             cell.appendChild(lbl);
                                         }
                                     }
-                                    if(window.botMoveHistory) {
+                                    if(window.botMoveHistory && window.useGomokuUI) {
                                         for(var m=0; m<window.botMoveHistory.length; m++) {
                                             var move = window.botMoveHistory[m];
                                             var idx = move[0]*19 + move[1];
@@ -925,11 +933,18 @@ class BotWindow(QMainWindow):
 
         # --- Nút tọa độ + Opacity ---
         h_ov = QHBoxLayout()
-        self.btn_overlay = QPushButton("👁️ Hiện số ô")
+        self.btn_overlay = QPushButton("👁️ Hiện tọa độ")
         self.btn_overlay.setStyleSheet("background:#6c757d;color:white;font-weight:bold;padding:8px;")
         self.btn_overlay.setCheckable(True)
         self.btn_overlay.clicked.connect(self.toggle_overlay)
         h_ov.addWidget(self.btn_overlay)
+        
+        self.chk_gomoku_ui = QCheckBox("Giao diện Gomoku 3D")
+        self.chk_gomoku_ui.setChecked(True)
+        self.chk_gomoku_ui.setStyleSheet("font-weight: bold; color: #007bff;")
+        self.chk_gomoku_ui.stateChanged.connect(self.toggle_gomoku_ui)
+        h_ov.addWidget(self.chk_gomoku_ui)
+        
         h_ov.addWidget(QLabel("🫧 Mờ:"))
         self.slider_opa = QSlider(Qt.Horizontal)
         self.slider_opa.setRange(10, 100)
@@ -1105,6 +1120,15 @@ class BotWindow(QMainWindow):
             )
             self.bot.pending_js.append(js)
             self.append_log("[OK] Đã ẩn tọa độ.")
+
+    def toggle_gomoku_ui(self, state):
+        if not self.bot.page: return
+        is_checked = self.chk_gomoku_ui.isChecked()
+        js = (
+            f"window.useGomokuUI = {'true' if is_checked else 'false'};"
+            "if(window.drawAllNumbers) window.drawAllNumbers();"
+        )
+        self.bot.pending_js.append(js)
 
     def change_overlay_opacity(self, val):
         self.lbl_opa.setText(f"{val}%")
