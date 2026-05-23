@@ -259,11 +259,24 @@ class BotThread(QThread):
                             if n > bnum: bnum=n; best=os.path.join(mdir, f)
                         except: pass
         if best:
-            self.engine.load_model(best)
-            self.model_name = os.path.basename(best).replace('.bin.gz','')
-            self.log(f"[OK] Não bộ: {os.path.basename(best)}")
+            success = self.engine.load_model(best)
+            if success is False:
+                self.log("====================================")
+                self.log("[!] BỎ QUA AI: Không tìm thấy thư mục Engine!")
+                self.log("[+] Đã tự động kích hoạt chế độ: THUẦN GHI LOG / CHƠI THỦ CÔNG.")
+                self.log("====================================")
+                self.mode = "manual"
+                self.log_signal.emit("CMD_FORCE_MANUAL")
+            else:
+                self.model_name = os.path.basename(best).replace('.bin.gz','')
+                self.log(f"[OK] Não bộ AI: {os.path.basename(best)}")
         else:
-            self.log("[!] Không có file .pth, AI sẽ Random.")
+            self.log("====================================")
+            self.log("[!] BỎ QUA AI: Không tìm thấy file Models!")
+            self.log("[+] Đã tự động kích hoạt chế độ: THUẦN GHI LOG / CHƠI THỦ CÔNG.")
+            self.log("====================================")
+            self.mode = "manual"
+            self.log_signal.emit("CMD_FORCE_MANUAL")
 
         with sync_playwright() as p:
             try:
@@ -1097,6 +1110,10 @@ class BotWindow(QMainWindow):
         self.append_log("\n[⏸️] DỪNG BOT!")
 
     def append_log(self, text):
+        if text == "CMD_FORCE_MANUAL":
+            self.cb_mode.setCurrentIndex(0) # Chuyển sang Chơi thủ công
+            return
+        
         scrollbar = self.txt_log.verticalScrollBar()
         at_bottom = scrollbar.value() >= scrollbar.maximum() - 5
         

@@ -78,6 +78,11 @@ class DCEngine:
                 print(f"❌ KHÔNG TÌM THẤY file engine (Bộ não C++)! Đảm bảo thư mục 'engine' (chứa caro20x_opencl.exe) nằm CÙNG CHỖ với file Bot.")
         
     def load_model(self, model_path):
+        if not os.path.exists(self.exe_path):
+            print("❌ BỎ QUA NẠP MODEL: Không có file engine C++.")
+            self.model_loaded = False
+            return False
+
         print(f"🤖 Đang khởi động DC_bot Engine với model: {model_path} ...")
         cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gtp.cfg")
         
@@ -91,18 +96,23 @@ class DCEngine:
         # Phải chạy exe trong chính thư mục chứa nó để không bị lỗi thiếu DLL (zlib, opencl...)
         engine_dir = os.path.dirname(self.exe_path)
         
-        self.process = subprocess.Popen(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding='utf-8',
-            errors='ignore',
-            bufsize=1,
-            cwd=engine_dir
-        )
-        self.model_loaded = True
+        try:
+            self.process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding='utf-8',
+                errors='ignore',
+                bufsize=1,
+                cwd=engine_dir
+            )
+            self.model_loaded = True
+        except Exception as e:
+            print(f"❌ Lỗi khi gọi subprocess Popen: {e}")
+            self.model_loaded = False
+            return False
         self.latest_winrate = ""
         self.latest_pv = ""
         self.engine_move_history = []
