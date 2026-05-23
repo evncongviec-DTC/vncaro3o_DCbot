@@ -877,7 +877,7 @@ class BotWindow(QMainWindow):
         l2.addLayout(hm)
         
         he = QHBoxLayout()
-        self.btn_engine = QPushButton("Chọn File Engine (.exe)")
+        self.btn_engine = QPushButton("Chọn File GPU")
         self.btn_engine.clicked.connect(self.choose_engine)
         self.lbl_engine = QLabel("Auto (Mặc định)")
         self.lbl_engine.setStyleSheet("color: #28a745; font-weight: bold;")
