@@ -58,24 +58,37 @@ class DCEngine:
         
         # Hỗ trợ mang Bot sang máy khác: Tìm thư mục 'engine' nằm ngay cạnh Bot
         base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        self.exe_path = os.path.join(base_dir, "engine", "caro20x_opencl.exe")
+        engine_dir = os.path.join(base_dir, "engine")
         
-        # Nếu không có ở thư mục hiện tại, tìm lùi ra ngoài (dành cho lúc chạy code python thuần)
-        if not os.path.exists(self.exe_path):
-            alt_path = os.path.join(os.path.dirname(base_dir), "engine", "caro20x_opencl.exe")
-            if os.path.exists(alt_path):
-                self.exe_path = alt_path
+        # Thử tìm lùi ra ngoài (dành cho lúc chạy code python thuần)
+        if not os.path.exists(engine_dir):
+            alt_engine = os.path.join(os.path.dirname(base_dir), "engine")
+            if os.path.exists(alt_engine):
+                engine_dir = alt_engine
             else:
-                # Tìm ngược lại đường dẫn gốc của Sếp để phòng hờ nếu Sếp chưa copy thư mục engine
-                fallback_path = r"E:\CODE\game caro\KataGomo20250206.CompatRTX50\KataGomo20250206\engine\caro20x_opencl.exe"
-                if os.path.exists(fallback_path):
-                    self.exe_path = fallback_path
+                fallback_engine = r"E:\CODE\game caro\KataGomo20250206.CompatRTX50\KataGomo20250206\engine"
+                if os.path.exists(fallback_engine):
+                    engine_dir = fallback_engine
                     
-        if not os.path.exists(self.exe_path):
-            # Nếu sếp dùng card Nvidia chuyên dụng, hoặc thiếu file opencl, thử tìm bản trt (TensorRT)
-            self.exe_path = self.exe_path.replace("opencl", "trt")
-            if not os.path.exists(self.exe_path):
-                print(f"❌ KHÔNG TÌM THẤY file engine (Bộ não C++)! Đảm bảo thư mục 'engine' (chứa caro20x_opencl.exe) nằm CÙNG CHỖ với file Bot.")
+        self.exe_path = ""
+        possible_engines = [
+            "gom20x_opencl.exe",
+            "gom20x_trt.exe",
+            "caro20x_opencl.exe",
+            "caro20x_trt.exe",
+            "gom15x_opencl.exe",
+            "gom15x_trt.exe"
+        ]
+        
+        if os.path.exists(engine_dir):
+            for eng in possible_engines:
+                test_path = os.path.join(engine_dir, eng)
+                if os.path.exists(test_path):
+                    self.exe_path = test_path
+                    break
+                    
+        if not self.exe_path or not os.path.exists(self.exe_path):
+            print(f"❌ KHÔNG TÌM THẤY file engine (Bộ não C++)! Đảm bảo thư mục 'engine' (chứa gom20x_opencl.exe hoặc caro20x_opencl.exe) nằm CÙNG CHỖ với file Bot.")
         
     def load_model(self, model_path):
         if not os.path.exists(self.exe_path):
@@ -83,7 +96,9 @@ class DCEngine:
             self.model_loaded = False
             return False
 
-        print(f"🤖 Đang khởi động DC_bot Engine với model: {model_path} ...")
+        # Trích xuất tên file engine để in log cho rõ ràng
+        engine_name = os.path.basename(self.exe_path)
+        print(f"🤖 Đang khởi động {engine_name} với model: {model_path} ...")
         cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gtp.cfg")
         
         cmd = [
