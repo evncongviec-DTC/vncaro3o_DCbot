@@ -489,7 +489,7 @@ class BotThread(QThread):
                             # Đã lưu log cho ván này rồi, chỉ chờ tìm trận mới
                             if self.auto_farm:
                                 page.evaluate('let closeBtn = document.querySelector(".result-close-btn") || document.querySelector(".ant-modal-close"); if(closeBtn) closeBtn.click();')
-                                page.evaluate('let actionBtn = document.querySelector("#result-action-btn"); if(actionBtn) { actionBtn.click(); } else { let b=Array.from(document.querySelectorAll("button")).find(b=>b.textContent && (b.textContent.includes("Tìm trận") || b.textContent.includes("Tìm đối thủ") || b.textContent.includes("Chơi tiếp") || b.textContent.includes("Chơi với máy") || b.textContent.includes("Đánh với máy"))); if(b)b.click(); }')
+                                page.evaluate('let btns=Array.from(document.querySelectorAll("button")); let playAgain=btns.find(b=>b.textContent&&b.textContent.includes("Chơi tiếp")); if(playAgain){playAgain.click();}else{let actionBtn=document.querySelector("#result-action-btn"); if(actionBtn){actionBtn.click();}else{let b=btns.find(b=>b.textContent&&(b.textContent.includes("Tìm trận")||b.textContent.includes("Tìm đối thủ")||b.textContent.includes("Chơi với máy")||b.textContent.includes("Đánh với máy"))); if(b)b.click();}}')
                             continue
                             
                         self.match_saved = True
@@ -604,7 +604,7 @@ class BotThread(QThread):
                             self.log("🚀 Tìm trận mới!")
                             page.evaluate('let closeBtn = document.querySelector(".result-close-btn") || document.querySelector(".ant-modal-close"); if(closeBtn) closeBtn.click();')
                             time.sleep(1)
-                            page.evaluate('let actionBtn = document.querySelector("#result-action-btn"); if(actionBtn) { actionBtn.click(); } else { let b=Array.from(document.querySelectorAll("button")).find(b=>b.textContent && (b.textContent.includes("Tìm trận") || b.textContent.includes("Tìm đối thủ") || b.textContent.includes("Chơi tiếp") || b.textContent.includes("Chơi với máy") || b.textContent.includes("Đánh với máy"))); if(b)b.click(); }')
+                            page.evaluate('let btns=Array.from(document.querySelectorAll("button")); let playAgain=btns.find(b=>b.textContent&&b.textContent.includes("Chơi tiếp")); if(playAgain){playAgain.click();}else{let actionBtn=document.querySelector("#result-action-btn"); if(actionBtn){actionBtn.click();}else{let b=btns.find(b=>b.textContent&&(b.textContent.includes("Tìm trận")||b.textContent.includes("Tìm đối thủ")||b.textContent.includes("Chơi với máy")||b.textContent.includes("Đánh với máy"))); if(b)b.click();}}')
                             self.last_board = None
                             prev_total_moves = -1
                             time.sleep(3)
