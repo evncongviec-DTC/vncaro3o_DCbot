@@ -10,11 +10,7 @@ import random
 import math
 import sys
 import os
-try:
-    from neutral_patterns import NEUTRAL_PATTERNS
-except ImportError:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-    from neutral_patterns import NEUTRAL_PATTERNS
+from neutral_patterns import NEUTRAL_PATTERNS
 
 BOARD_SIZE = 19
 ACTION_SIZE = BOARD_SIZE * BOARD_SIZE
