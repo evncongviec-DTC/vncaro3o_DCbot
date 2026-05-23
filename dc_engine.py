@@ -106,7 +106,8 @@ class DCEngine:
                 encoding='utf-8',
                 errors='ignore',
                 bufsize=1,
-                cwd=engine_dir
+                cwd=engine_dir,
+                creationflags=subprocess.CREATE_NO_WINDOW
             )
             self.model_loaded = True
         except Exception as e:
@@ -118,6 +119,7 @@ class DCEngine:
         self.engine_move_history = []
         
         # Bắt đầu luồng đọc stderr để lấy Winrate và PV, đồng thời chống kẹt buffer
+        self.engine_error_log = []
         import threading
         def _read_stderr():
             while self.process and self.process.poll() is None:
@@ -128,6 +130,11 @@ class DCEngine:
                         self.latest_winrate = line.strip()
                     elif line.startswith("PV:"):
                         self.latest_pv = line.strip()
+                    else:
+                        # Lưu lại các dòng không phải winrate/PV để debug khi crash
+                        self.engine_error_log.append(line.strip())
+                        if len(self.engine_error_log) > 10:
+                            self.engine_error_log.pop(0)
                 except Exception as e:
                     print(f"Luồng đọc stderr bị lỗi (cần báo Coder): {e}")
                     break
@@ -137,19 +144,22 @@ class DCEngine:
         # Đợi 1 chút xem nó có crash ngay lúc nạp model không
         time.sleep(1)
         if self.process.poll() is not None:
+            # Lấy nốt log còn sót lại
             err = self.process.stderr.read()
+            if err:
+                self.engine_error_log.append(err.strip())
+            
+            full_err = "\\n".join(self.engine_error_log)
             print(f"❌ Kểt nối DC_bot thất bại! Mã lỗi: {self.process.returncode}")
-            print(f"Chi tiết lỗi từ DC_bot: {err}")
+            print(f"Chi tiết lỗi từ DC_bot: {full_err}")
             self.model_loaded = False
             return False
             
         # Thiết lập cơ bản cho bàn cờ VnCaro
         self.send_command(f"boardsize {self.board_size}")
         self.send_command("clear_board")
-        # Thử set luật, nếu engine cũ không hỗ trợ thì nó chỉ báo lỗi chứ không crash
-        res_rule = self.send_command("kata-set-rules VNCARO")
-        if res_rule.startswith("?"):
-            print(f"⚠️ Cảnh báo: Engine chưa hỗ trợ luật VNCARO ({res_rule})")
+        # Thử set luật, nếu engine cũ không hỗ trợ thì kệ nó
+        self.send_command("kata-set-rules VNCARO")
         print("✅ DC_bot đã sẵn sàng chiến đấu!")
         return True
         
