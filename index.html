@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caro AI - Open 4</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --board-bg: #fff;
+            --line-color: #d1d5db;
+            --neutral-color: #374151;
+            --x-color: #ef4444;
+            --o-color: #10b981;
+            --highlight-green: rgba(16, 185, 129, 0.2);
+            --highlight-gray: rgba(156, 163, 175, 0.3);
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #1f2937;
+        }
+        .container {
+            display: flex;
+            gap: 40px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            align-items: flex-start;
+        }
+        .board-wrapper {
+            flex-shrink: 0;
+            width: 612px;
+            height: 612px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(19, 32px);
+            grid-template-rows: repeat(19, 32px);
+            gap: 0;
+            border: 1px solid var(--line-color);
+            background-color: var(--board-bg);
+            position: relative;
+        }
+        .cell {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--line-color);
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+        .cell:hover {
+            background-color: #f9fafb;
+        }
+        .cell-id {
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            font-size: 7px;
+            color: #b0b0b0;
+            font-weight: normal;
+            pointer-events: none;
+            line-height: 1;
+        }
+        .neutral {
+            background-color: var(--neutral-color);
+            border-radius: 4px;
+            width: 18px;
+            height: 18px;
+        }
+        .x-piece {
+            color: var(--x-color);
+            font-size: 20px;
+        }
+        .o-piece {
+            color: var(--o-color);
+            font-size: 20px;
+        }
+        .highlight-green {
+            background-color: var(--highlight-green) !important;
+        }
+        .highlight-gray {
+            background-color: var(--highlight-gray) !important;
+        }
+        .last-move {
+            box-shadow: inset 0 0 0 2px #3b82f6;
+        }
+        .panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 280px;
+            max-width: 280px;
+        }
+        .status-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        h2 { margin: 0 0 5px 0; font-size: 1.4rem; }
+        h3 { margin: 0 0 8px 0; }
+        .timer { font-size: 2rem; font-weight: bold; color: #3b82f6; }
+        .timer.warning { color: #ef4444; animation: pulse 1s infinite; }
+        .turn-x { color: var(--x-color); }
+        .turn-o { color: var(--o-color); }
+        
+        button {
+            padding: 10px 16px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #2563eb; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn-green { background-color: #10b981; }
+        .btn-green:hover { background-color: #059669; }
+        .btn-red { background-color: #ef4444; }
+        .btn-red:hover { background-color: #dc2626; }
+        .btn-orange { background-color: #f59e0b; }
+        .btn-orange:hover { background-color: #d97706; }
+        
+        .replay-bar, .undo-bar {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="board-wrapper">
+        <div class="board" id="board"></div>
+    </div>
+    <div class="panel">
+        <div class="status-box">
+            <h2>Lượt đi: <span id="turn-indicator" class="turn-x">X</span></h2>
+            <div class="timer" id="timer">60s</div>
+        </div>
+        
+        <div class="status-box" style="flex-grow: 1; display: flex; flex-direction: column;">
+            <h3>Lịch sử nước đi</h3>
+            <div id="move-log" style="flex-grow: 0; background: white; border: 1px solid #ccc; border-radius: 4px; padding: 8px; font-family: monospace; font-size: 13px; overflow-y: scroll; text-align: left; height: 200px;">
+            </div>
+            <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="log-input" placeholder="Dán log game từ Colab..." style="flex-grow: 1; padding: 5px; font-size: 11px; border: 1px solid #ccc; border-radius: 4px;">
+                    <button class="btn-sm" onclick="loadLogForReplay()">Tải Log</button>
+                </div>
+                <div id="replay-controls" class="undo-bar">
+                    <button class="btn-sm btn-orange" onclick="doAction('prev3')">⏪ -3</button>
+                    <button class="btn-sm" onclick="doAction('prev')">⏮ Lùi</button>
+                    <button class="btn-sm btn-green" onclick="toggleReplay()" id="replay-play-btn">⏯ Phát</button>
+                    <button class="btn-sm" onclick="doAction('next')">⏭ Tiến</button>
+                    <button class="btn-sm btn-orange" onclick="doAction('next3')">+3 ⏩</button>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="resetGame()">Chơi lại (Random Ô trung lập)</button>
+        <div style="font-size: 0.85rem; color: #666;">
+            <strong>Luật chơi:</strong><br>
+            1. X đi trước, cạnh ô trung lập.<br>
+            2. Nước X thứ 2 (Open 4) ngoài bán kính 3 ô.<br>
+            3. 5 quân liên tiếp thắng.
+        </div>
+    </div>
+</div>
+
+<script>
+    const BOARD_SIZE = 19;
+    let board = [];
+    let currentPlayer = 1;
+    let moveHistory = [];
+    let undoStack = []; // Lưu nước đã undo để redo
+    let x1Pos = null;
+    let gameOver = false;
+    let timeLeft = 60;
+    let timerInterval;
+    let boardInitialized = false;
+    let isReplayMode = false;
+
+    const boardEl = document.getElementById('board');
+    const timerEl = document.getElementById('timer');
+    const turnEl = document.getElementById('turn-indicator');
+
+    function initBoard() {
+        if (!boardInitialized) {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${r}-${c}`;
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    cell.onclick = () => handleCellClick(r, c);
+                    boardEl.appendChild(cell);
+                }
+            }
+            boardInitialized = true;
+        }
+        board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+    }
+
+    function generateNeutralCells() {
+        let valid = false;
+        let p1, p2, p3;
+        
+        while (!valid) {
+            let pts = [];
+            while (pts.length < 3) {
+                let r = Math.floor(Math.random() * 11) + 4;
+                let c = Math.floor(Math.random() * 11) + 4;
+                if (r === 9 && c === 9) continue;
+                if (!pts.some(p => p.r === r && p.c === c)) {
+                    pts.push({r, c});
+                }
+            }
+            
+            p1 = pts[0]; p2 = pts[1]; p3 = pts[2];
+            let d12 = Math.pow(p1.r - p2.r, 2) + Math.pow(p1.c - p2.c, 2);
+            let d13 = Math.pow(p1.r - p3.r, 2) + Math.pow(p1.c - p3.c, 2);
+            let d23 = Math.pow(p2.r - p3.r, 2) + Math.pow(p2.c - p3.c, 2);
+            if (d12 < 20 || d13 < 20 || d23 < 20) continue;
+            
+            let avgR = (p1.r + p2.r + p3.r) / 3;
+            let avgC = (p1.c + p2.c + p3.c) / 3;
+            let distToCenterSq = Math.pow(avgR - 9, 2) + Math.pow(avgC - 9, 2);
+            if (distToCenterSq > 6) continue;
+            valid = true;
+        }
+        
+        board[p1.r][p1.c] = -1;
+        board[p2.r][p2.c] = -1;
+        board[p3.r][p3.c] = -1;
+    }
+
+    function render() {
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const cell = document.getElementById(`cell-${r}-${c}`);
+                const val = board[r][c];
+                const cellId = r * 20 + c + 1;
+                
+                cell.innerHTML = '';
+                cell.className = 'cell';
+                
+                if (val === -1) {
+                    // Neutral: không hiện số
+                    cell.innerHTML = '<div class="neutral"></div>';
+                } else if (val === 1) {
+                    cell.innerHTML = `<span class="cell-id">${cellId}</span><span class="x-piece">X</span>`;
+                } else if (val === 2) {
+                    cell.innerHTML = `<span class="cell-id">${cellId}</span><span class="o-piece">O</span>`;
+                } else {
+                    // Ô trống: hiện số ID nhỏ
+                    cell.innerHTML = `<span class="cell-id">${cellId}</span>`;
+                }
+
+                // Highlight nước đi cuối cùng
+                if (moveHistory.length > 0) {
+                    let last = moveHistory[moveHistory.length - 1];
+                    if (last.r === r && last.c === c) {
+                        cell.classList.add('last-move');
+                    }
+                }
+
+                // Highlight green cho nước X1
+                if (moveHistory.length === 0 && val === 0 && isAdjacentToNeutral(r, c)) {
+                    cell.classList.add('highlight-green');
+                }
+
+                // Highlight gray cho vùng cấm nước X2
+                if (currentPlayer === 1 && moveHistory.length === 2 && x1Pos) {
+                    if (Math.max(Math.abs(r - x1Pos.r), Math.abs(c - x1Pos.c)) <= 3) {
+                        cell.classList.add('highlight-gray');
+                    }
+                }
+            }
+        }
+    }
+
+    function isAdjacentToNeutral(r, c) {
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                let nr = r + dr, nc = c + dc;
+                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                    if (board[nr][nc] === -1) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function handleCellClick(r, c) {
+        if (gameOver || board[r][c] !== 0) return;
+
+        // Luật 1: X1 phải cạnh neutral
+        if (moveHistory.length === 0) {
+            if (!isAdjacentToNeutral(r, c)) {
+                alert("Nước X đầu tiên phải nằm cạnh một ô trung lập (chấm đen)!");
+                return;
+            }
+            x1Pos = {r, c};
+        }
+
+        // Luật 2: X2 phải ngoài bán kính 3 của X1
+        if (currentPlayer === 1 && moveHistory.length === 2) {
+            if (Math.max(Math.abs(r - x1Pos.r), Math.abs(c - x1Pos.c)) <= 3) {
+                alert("Luật Open 4: Nước X thứ 2 phải ngoài bán kính 3 ô so với nước ban đầu (ngoài vùng xám)!");
+                return;
+            }
+        }
+
+        let cellId = r * 20 + c + 1;
+        board[r][c] = currentPlayer;
+        moveHistory.push({r, c, p: currentPlayer, id: cellId});
+        
+        updateMoveLog();
+
+        if (checkWin(r, c, currentPlayer)) {
+            render();
+            gameOver = true;
+            clearInterval(timerInterval);
+            setTimeout(() => alert(`Người chơi ${currentPlayer === 1 ? 'X' : 'O'} đã chiến thắng!`), 100);
+            return;
+        }
+
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        turnEl.textContent = currentPlayer === 1 ? 'X' : 'O';
+        turnEl.className = currentPlayer === 1 ? 'turn-x' : 'turn-o';
+        
+        resetTimer();
+        render();
+    }
+
+    function updateMoveLog() {
+        const logEl = document.getElementById('move-log');
+        let logHtml = "";
+        
+        let neutralIds = [];
+        for (let i = 0; i < BOARD_SIZE; i++) {
+            for (let j = 0; j < BOARD_SIZE; j++) {
+                if (board[i][j] === -1) {
+                    neutralIds.push(i * 20 + j + 1);
+                }
+            }
+        }
+        logHtml += `Trung lập: [${neutralIds.join(', ')}]<br>`;
+        
+        for (let i = 0; i < moveHistory.length; i++) {
+            let m = moveHistory[i];
+            let pName = m.p === 1 ? '<span class="turn-x">X</span>' : '<span class="turn-o">O</span>';
+            logHtml += `${i + 1}. ${pName}: ${m.id}<br>`;
+        }
+        
+        logEl.innerHTML = logHtml;
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function checkWin(r, c, p) {
+        const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+        for (let [dr, dc] of dirs) {
+            let count = 1;
+            let nr = r + dr, nc = c + dc;
+            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === p) {
+                count++; nr += dr; nc += dc;
+            }
+            nr = r - dr; nc = c - dc;
+            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === p) {
+                count++; nr -= dr; nc -= dc;
+            }
+            if (count >= 5) return true;
+        }
+        return false;
+    }
+
+    function updateTimer() {
+        if (gameOver) return;
+        timeLeft--;
+        timerEl.textContent = timeLeft + 's';
+        if (timeLeft <= 10) {
+            timerEl.classList.add('warning');
+        } else {
+            timerEl.classList.remove('warning');
+        }
+        if (timeLeft <= 0) {
+            gameOver = true;
+            clearInterval(timerInterval);
+            alert(`Hết giờ! Người chơi ${currentPlayer === 1 ? 'O' : 'X'} thắng!`);
+        }
+    }
+
+    function resetTimer() {
+        timeLeft = 60;
+        timerEl.textContent = timeLeft + 's';
+        timerEl.classList.remove('warning');
+    }
+
+    function resetGame() {
+        clearInterval(timerInterval);
+        currentPlayer = 1;
+        moveHistory = [];
+        x1Pos = null;
+        gameOver = false;
+        turnEl.textContent = 'X';
+        turnEl.className = 'turn-x';
+        document.getElementById('move-log').innerHTML = '';
+        isReplayMode = false;
+        undoStack = [];
+        
+        initBoard();
+        generateNeutralCells();
+        updateMoveLog();
+        render();
+        resetTimer();
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+    
+    // --- Replay Log ---
+    let replayInterval = null;
+    let replayMoves = [];
+    let replayNeutralIds = [];
+    let currentReplayIndex = 0;
+    let isReplaying = false;
+
+    function loadLogForReplay() {
+        const logText = document.getElementById('log-input').value.trim();
+        if (!logText) {
+            alert("Vui lòng dán chuỗi log từ Colab vào ô trống!");
+            return;
+        }
+        
+        try {
+            const neutralMatch = logText.match(/Trung lập: \[([\d, ]+)\]/);
+            replayNeutralIds = [];
+            if (neutralMatch) {
+                replayNeutralIds = neutralMatch[1].split(',').map(s => parseInt(s.trim()));
+            }
+            
+            const movesMatch = logText.match(/Nước đi: (.*)/);
+            replayMoves = [];
+            if (movesMatch) {
+                const moveParts = movesMatch[1].split('->');
+                for (let part of moveParts) {
+                    const idMatch = part.match(/:(\d+)/);
+                    if (idMatch) {
+                        replayMoves.push(parseInt(idMatch[1]));
+                    }
+                }
+            }
+            
+            if (replayNeutralIds.length === 0 && replayMoves.length === 0) {
+                alert("Không nhận diện được định dạng log. Hãy copy nguyên dòng 'Log Game: Trung lập...'.");
+                return;
+            }
+            
+            clearInterval(timerInterval);
+            if (replayInterval) clearInterval(replayInterval);
+            isReplaying = false;
+            document.getElementById('replay-play-btn').innerHTML = "⏯ Phát";
+            document.getElementById('replay-play-btn').className = "btn-sm btn-green";
+            
+            document.getElementById('replay-controls').style.display = 'flex';
+            isReplayMode = true;
+            currentReplayIndex = 0;
+            renderReplayState();
+            
+        } catch(e) {
+            alert("Đã xảy ra lỗi khi đọc log: " + e.message);
+        }
+    }
+
+    function renderReplayState() {
+        // KHÔNG gọi initBoard() lại — chỉ reset data rồi render lên DOM cũ
+        board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+        moveHistory = [];
+        gameOver = true;
+        
+        for (let nid of replayNeutralIds) {
+            let r = Math.floor((nid - 1) / 20);
+            let c = (nid - 1) % 20;
+            if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                board[r][c] = -1;
+            }
+        }
+        
+        let currentP = 1;
+        for (let i = 0; i < currentReplayIndex; i++) {
+            let mid = replayMoves[i];
+            let r = Math.floor((mid - 1) / 20);
+            let c = (mid - 1) % 20;
+            if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                board[r][c] = currentP;
+                moveHistory.push({r, c, p: currentP, id: mid});
+            }
+            currentP = currentP === 1 ? 2 : 1;
+        }
+        
+        updateMoveLog();
+        render();
+        
+        // Thêm thông tin replay vào log
+        let statusMsg = `<br><em style="color:#666">Nước ${currentReplayIndex}/${replayMoves.length}</em>`;
+        if (currentReplayIndex === replayMoves.length && replayMoves.length > 0) {
+            let lastMove = moveHistory[moveHistory.length - 1];
+            if (checkWin(lastMove.r, lastMove.c, lastMove.p)) {
+                statusMsg += `<br><strong style="color:${lastMove.p===1?'var(--x-color)':'var(--o-color)'}">--- ${lastMove.p === 1 ? 'X' : 'O'} THẮNG ---</strong>`;
+            } else {
+                statusMsg += `<br><strong>--- HÒA ---</strong>`;
+            }
+        }
+        document.getElementById('move-log').innerHTML += statusMsg;
+    }
+
+    function replayNext() {
+        if (currentReplayIndex < replayMoves.length) {
+            currentReplayIndex++;
+            renderReplayState();
+        }
+    }
+
+    // === HÀNH ĐỘNG CHUNG cho cả 2 chế độ ===
+    function doAction(type) {
+        if (isReplayMode) {
+            // Chế độ replay log
+            if (type === 'prev') replayPrev();
+            else if (type === 'next') replayNext();
+            else if (type === 'prev3') replayPrevFast();
+            else if (type === 'next3') replayNextFast();
+        } else {
+            // Chế độ chơi thủ công
+            if (type === 'prev') undoMove(1);
+            else if (type === 'next') redoMove(1);
+            else if (type === 'prev3') undoMove(3);
+            else if (type === 'next3') redoMove(3);
+        }
+    }
+
+    function undoMove(count) {
+        for (let i = 0; i < count; i++) {
+            if (moveHistory.length === 0) break;
+            let last = moveHistory.pop();
+            board[last.r][last.c] = 0;
+            undoStack.push(last);
+            currentPlayer = last.p;
+            gameOver = false;
+        }
+        turnEl.textContent = currentPlayer === 1 ? 'X' : 'O';
+        turnEl.className = currentPlayer === 1 ? 'turn-x' : 'turn-o';
+        updateMoveLog();
+        render();
+    }
+
+    function redoMove(count) {
+        for (let i = 0; i < count; i++) {
+            if (undoStack.length === 0) break;
+            let move = undoStack.pop();
+            board[move.r][move.c] = move.p;
+            moveHistory.push(move);
+            currentPlayer = move.p === 1 ? 2 : 1;
+        }
+        turnEl.textContent = currentPlayer === 1 ? 'X' : 'O';
+        turnEl.className = currentPlayer === 1 ? 'turn-x' : 'turn-o';
+        updateMoveLog();
+        render();
+    }
+
+    function replayPrev() {
+        if (currentReplayIndex > 0) {
+            currentReplayIndex--;
+            renderReplayState();
+        }
+    }
+
+    function replayNext() {
+        if (currentReplayIndex < replayMoves.length) {
+            currentReplayIndex++;
+            renderReplayState();
+        }
+    }
+
+    function replayNextFast() {
+        for (let i = 0; i < 3; i++) {
+            if (currentReplayIndex < replayMoves.length) currentReplayIndex++;
+        }
+        renderReplayState();
+    }
+
+    function replayPrevFast() {
+        for (let i = 0; i < 3; i++) {
+            if (currentReplayIndex > 0) currentReplayIndex--;
+        }
+        renderReplayState();
+    }
+
+    function toggleReplay() {
+        if (!isReplayMode) return;
+        if (isReplaying) {
+            clearInterval(replayInterval);
+            isReplaying = false;
+            document.getElementById('replay-play-btn').innerHTML = "⏯ Phát";
+            document.getElementById('replay-play-btn').className = "btn-sm btn-green";
+        } else {
+            if (currentReplayIndex >= replayMoves.length) {
+                currentReplayIndex = 0;
+                renderReplayState();
+            }
+            isReplaying = true;
+            document.getElementById('replay-play-btn').innerHTML = "⏸ Dừng";
+            document.getElementById('replay-play-btn').className = "btn-sm btn-red";
+            replayInterval = setInterval(() => {
+                if (currentReplayIndex >= replayMoves.length) {
+                    clearInterval(replayInterval);
+                    isReplaying = false;
+                    document.getElementById('replay-play-btn').innerHTML = "⏯ Phát";
+                    document.getElementById('replay-play-btn').className = "btn-sm btn-green";
+                    return;
+                }
+                replayNext();
+            }, 500);
+        }
+    }
+
+    // Start game
+    resetGame();
+</script>
+
+</body>
+</html>
