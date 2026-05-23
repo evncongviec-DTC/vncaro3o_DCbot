@@ -289,7 +289,8 @@ class BotThread(QThread):
                     channel="chrome",
                     headless=False,
                     no_viewport=True,
-                    args=["--start-maximized"]
+                    ignore_default_args=["--enable-automation"],
+                    args=["--start-maximized", "--disable-blink-features=AutomationControlled"]
                 )
                 self.log("[OK] Mở Chrome thành công!")
                 
