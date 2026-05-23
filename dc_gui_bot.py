@@ -801,7 +801,7 @@ class BotWindow(QMainWindow):
         g1.setLayout(l1); lay.addWidget(g1)
 
         # --- Não Bộ ---
-        g2 = QGroupBox("Cấu Hình Não Bộ")
+        self.g2 = QGroupBox("Cấu Hình Não Bộ")
         l2 = QVBoxLayout()
 
         hm = QHBoxLayout()
@@ -852,7 +852,7 @@ class BotWindow(QMainWindow):
         self.chk_ponder.toggled.connect(self.update_ponder_cfg)
         l2.addWidget(self.chk_ponder)
 
-        g2.setLayout(l2); lay.addWidget(g2)
+        self.g2.setLayout(l2); lay.addWidget(self.g2)
 
         # --- Nút ---
         h_btns = QHBoxLayout()
@@ -1093,6 +1093,17 @@ class BotWindow(QMainWindow):
         self.bot.mcts_time = self.spin_delay.value()
         self.bot.simulations = self.spin_level.value() * 400
         self.bot.mode = "ai" if self.cb_mode.currentIndex() == 1 else "manual"
+        
+        self.cb_mode.currentIndexChanged.connect(self.on_mode_changed)
+        self.on_mode_changed(self.cb_mode.currentIndex())
+
+    def on_mode_changed(self, index):
+        if index == 0: # Manual mode
+            self.g2.setVisible(False)
+            self.btn_go.setText("BẮT ĐẦU")
+        else: # AI mode
+            self.g2.setVisible(True)
+            self.btn_go.setText("BẮT ĐẦU BOT")
 
     def toggle_bot(self):
         if not self.bot.active:
