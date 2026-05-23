@@ -56,13 +56,26 @@ class DCEngine:
         self.process = None
         self.board_size = 19
         
-        # Hardcode đường dẫn tới file exe của sếp (thư mục gốc ĐẦY ĐỦ thư viện DLL)
-        self.exe_path = r"E:\CODE\game caro\DC_botmo20250206.CompatRTX50\DC_botmo20250206\engine\caro20x_opencl.exe"
+        # Hỗ trợ mang Bot sang máy khác: Tìm thư mục 'engine' nằm ngay cạnh Bot
+        base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        self.exe_path = os.path.join(base_dir, "engine", "gom20x_opencl.exe")
+        
+        # Nếu không có ở thư mục hiện tại, tìm lùi ra ngoài (dành cho lúc chạy code python thuần)
+        if not os.path.exists(self.exe_path):
+            alt_path = os.path.join(os.path.dirname(base_dir), "engine", "gom20x_opencl.exe")
+            if os.path.exists(alt_path):
+                self.exe_path = alt_path
+            else:
+                # Tìm ngược lại đường dẫn gốc của Sếp để phòng hờ nếu Sếp chưa copy thư mục engine
+                fallback_path = r"E:\CODE\game caro\KataGomo20250206.CompatRTX50\KataGomo20250206\engine\gom20x_opencl.exe"
+                if os.path.exists(fallback_path):
+                    self.exe_path = fallback_path
+                    
         if not os.path.exists(self.exe_path):
             # Nếu sếp dùng card Nvidia thì thử file trt
             self.exe_path = self.exe_path.replace("opencl", "trt")
             if not os.path.exists(self.exe_path):
-                print(f"❌ KHÔNG TÌM THẤY file engine (Bộ não AI)! Sếp cần kiểm tra lại đường dẫn.")
+                print(f"❌ KHÔNG TÌM THẤY file engine (Bộ não C++)! Đảm bảo thư mục 'engine' (chứa gom20x_trt.exe) nằm CÙNG CHỖ với file Bot.")
         
     def load_model(self, model_path):
         print(f"🤖 Đang khởi động DC_bot Engine với model: {model_path} ...")
