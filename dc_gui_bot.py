@@ -1021,11 +1021,15 @@ class BotWindow(QMainWindow):
                 self.append_log(f"\n[!] Đang nạp {name}... (Quá trình này mất 1-3 phút. NẾU BỊ TREO/NOT RESPONDING SẾP CỨ ĐỂ YÊN NHÉ, NÓ ĐANG NẠP VÀO CARD ĐỒ HỌA!)")
                 QApplication.processEvents()  # Ép màn hình hiển thị dòng log trên ngay lập tức trước khi bị freeze
                 
-                self.bot.engine.load_model(path)
+                success = self.bot.engine.load_model(path)
                 
-                self.bot.model_name = name.replace('model_','').replace('.bin.gz','')
-                self.lbl_model.setText(name)
-                self.append_log(f"[OK] Đã nạp xong Não: {name}")
+                if success:
+                    self.bot.model_name = name.replace('model_','').replace('.bin.gz','')
+                    self.lbl_model.setText(name)
+                    self.append_log(f"[OK] Đã nạp xong Não: {name}")
+                else:
+                    self.append_log(f"[LỖI] KHÔNG THỂ nạp Não. Đảm bảo thư mục 'engine' chứa caro20x_opencl.exe nằm CÙNG CHỖ với file Bot này!")
+                    QMessageBox.warning(self, "Lỗi Nạp Não", "Nạp thất bại! Thiếu file engine C++ hoặc model bị lỗi.\nSếp hãy đảm bảo đã copy thư mục 'engine' để nằm chung với file Bot .exe nhé.")
 
     def toggle_overlay(self, checked):
         if not self.bot.page:

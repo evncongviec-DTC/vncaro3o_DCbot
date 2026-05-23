@@ -141,7 +141,7 @@ class DCEngine:
             print(f"❌ Kểt nối DC_bot thất bại! Mã lỗi: {self.process.returncode}")
             print(f"Chi tiết lỗi từ DC_bot: {err}")
             self.model_loaded = False
-            return
+            return False
             
         # Thiết lập cơ bản cho bàn cờ VnCaro
         self.send_command(f"boardsize {self.board_size}")
@@ -151,6 +151,7 @@ class DCEngine:
         if res_rule.startswith("?"):
             print(f"⚠️ Cảnh báo: Engine chưa hỗ trợ luật VNCARO ({res_rule})")
         print("✅ DC_bot đã sẵn sàng chiến đấu!")
+        return True
         
     def send_command(self, cmd):
         if not self.process: return ""
