@@ -1,24 +1,23 @@
 =========================================
-HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY DC_BOT (VNCARO)
+HƯỚNG DẪN CÀI ĐẶT VÀ SỬ DỤNG VNCARO DC_BOT (PHIÊN BẢN GHI LOG)
 =========================================
 
-Để phần mềm có thể chạy trên MỌI MÁY TÍNH (dù là card Nvidia, AMD hay Intel), bạn cần sắp xếp các thư mục theo đúng cấu trúc như sau:
+Phần mềm này là một công cụ tiện ích hỗ trợ người chơi trên VnCaro, với các tính năng:
+- Tự động nhận diện bàn cờ và hiển thị số thứ tự nước đi trên màn hình (Overlay).
+- Ghi lại lịch sử ván cờ (Xuất file Log SGF) để bạn có thể xem lại hoặc phân tích sau.
+- Hỗ trợ tính năng tự động tìm trận (Auto-Farm) khi kết thúc ván.
 
-Thư mục chính (Ví dụ: AutoBot_VnCaro)
-│
-├── Vncaro3o_DCbot.exe          <-- (Bot Chính - Nằm ngoài cùng)
-│
-├── engine/                     <-- (Thư mục chứa bộ não C++)
-│   ├── caro20x_opencl.exe      <-- (File bắt buộc phải có cho mọi loại card đồ họa)
-│   ├── caro20x_trt.exe         <-- (Tuỳ chọn: Tối ưu cho card Nvidia RTX)
-│   ├── cublas64_12.dll         <-- (Và các file thư viện .dll đi kèm)
-│   └── ... 
-│
-└── models/                     <-- (Thư mục chứa trí tuệ AI)
-    └── tworule_20x_b18.bin.gz  <-- (File mô hình mạng Neural)
+--- CÁCH CÀI ĐẶT ---
+Phần mềm rất nhẹ và hoạt động độc lập (Portable), không cần cài đặt phức tạp.
+1. Bạn chỉ cần tải file Vncaro3o_DCbot.exe về máy tính.
+2. Để file này ở bất kỳ đâu (Ví dụ: Desktop, ổ C, ổ D...).
+3. Nhấp đúp chuột để chạy file Vncaro3o_DCbot.exe.
 
------------------------------------------
-CHÚ Ý QUAN TRỌNG:
-1. File chạy gốc hiện tại ưu tiên sử dụng bản OpenCL (caro20x_opencl.exe). Bản này dùng được cho đa số các dòng máy và card màn hình phổ thông. Nếu không tìm thấy opencl, Bot sẽ tự động thử tìm bản TensorRT (caro20x_trt.exe).
-2. Khi copy Bot sang máy khác, BẮT BUỘC phải copy cả thư mục "engine" và "models". Nếu chỉ copy mỗi file .exe, phần mềm sẽ báo lỗi "Không tìm thấy file engine".
-3. Chỉ cần chạy thẳng file Vncaro3o_DCbot.exe, phần mềm sẽ tự mở một trình duyệt Chrome an toàn để chơi. Không cần file .bat phụ trợ nào khác.
+--- CÁCH SỬ DỤNG ---
+1. Khi giao diện bật lên, phần mềm sẽ tự động mở một cửa sổ Chrome an toàn.
+2. Bạn đăng nhập vào VnCaro trên cửa sổ Chrome đó.
+3. Chọn chế độ "Chơi thủ công (Ghi Log)" trên giao diện Tool.
+4. Bấm "Bắt đầu Bot". 
+5. Cứ thế chơi bình thường! Tool sẽ tự động quét và lưu lại mọi diễn biến trên bàn cờ.
+
+Chúc bạn có những giây phút leo rank vui vẻ!
