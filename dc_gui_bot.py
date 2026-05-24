@@ -797,7 +797,7 @@ class BotWindow(QMainWindow):
         self.cb_mode.addItems(["Chơi thủ công (Ghi Log)", "Chơi bằng Model AI"])
         self.cb_mode.setStyleSheet("font-weight: bold; padding: 5px;")
         h_mode.addWidget(self.cb_mode)
-        self.btn_help = QPushButton('ℹ️ Bảo mật')
+        self.btn_help = QPushButton('ℹ️ Thông tin')
         self.btn_help.setStyleSheet('color: #17a2b8; font-weight: bold; padding: 5px;')
         self.btn_help.setFixedWidth(100)
         self.btn_help.clicked.connect(self.show_security_info)
@@ -946,15 +946,17 @@ class BotWindow(QMainWindow):
         self.bot.start()
     def show_security_info(self):
         msg = QMessageBox(self)
-        msg.setWindowTitle('Thông tin Bảo mật')
+        msg.setWindowTitle('Hướng dẫn & Bảo mật')
         msg.setText(
-            '<b>Cửa sổ Chrome trắng tinh là một vùng an toàn (Sandbox).</b><br><br>'
-            'Nó <b>không hề đụng chạm, quét, hay đọc</b> bất kỳ lịch sử duyệt web, cookie, '
-            'hay tài khoản ngân hàng nào đang lưu trong trình duyệt chính của bạn.<br><br>'
-            'Ngược lại, nếu kết nối tool vào trình duyệt chính đang mở sẵn, '
-            'rủi ro bị lộ lọt toàn bộ mật khẩu cá nhân sẽ rất cao nếu xảy ra lỗi bảo mật.<br><br>'
-            'Với cửa sổ trắng độc lập này, bạn <b>chỉ cần đăng nhập VnCaro 1 lần duy nhất</b>, '
-            'các lần sau mở tool lên nó sẽ tự nhớ phiên đăng nhập (thông qua thư mục <i>chrome_profile</i>).'
+            '<b>Tác dụng của nút BẮT ĐẦU:</b><br>'
+            '1. <b>Cho Thủ công:</b> Ghi lại lịch sử ván đấu để xem lại.<br>'
+            '2. <b>Cho Bot:</b> Ghi lịch sử và tự động chạy Bot đánh cờ.<br>'
+            '3. <b>Cho Khán giả:</b> Ghi lại lịch sử ván đấu khi bạn ở chế độ khách xem 2 người khác thi đấu.<br><br>'
+            '<b>Bảo mật Sandbox:</b><br>'
+            'Cửa sổ Chrome được mở ra là một vùng an toàn độc lập. Nó <b>không hề đụng chạm, quét, hay đọc</b> '
+            'bất kỳ lịch sử duyệt web hay dữ liệu cá nhân nào trong trình duyệt chính của bạn.<br><br>'
+            'Điều này đảm bảo an toàn tuyệt đối, tránh rủi ro lộ mật khẩu. '
+            'Bạn chỉ cần đăng nhập VnCaro 1 lần, tool sẽ tự nhớ phiên đăng nhập (qua thư mục <i>chrome_profile</i>).'
         )
         msg.exec_()
     def update_side_ui(self, is_x):
