@@ -1,6 +1,6 @@
 ﻿# Vncaro3o DCbot
 
-Vncaro3o DCbot là phần mềm hỗ trợ chơi cờ Caro tự động, được thiết kế với tiêu chí **bảo mật tuyệt đối** cho người sử dụng. Nó cho phép bạn kết nối với nền tảng VnCaro thông qua trình duyệt an toàn và đưa ra các nước cờ tối ưu hoặc tự động đánh.
+Vncaro3o DCbot là phần mềm hỗ trợ chơi cờ Caro và thêm các tính năng mà web vncaro chưa có (lịch sử nước đi, lịch sử chat). Được thiết kế với tiêu chí **bảo mật tuyệt đối** cho người sử dụng. Nó cho phép bạn kết nối với nền tảng VnCaro thông qua trình duyệt an toàn và đưa ra các nước cờ tối ưu hoặc tự động đánh.
 
 ## Các tính năng chính
 - **Chơi bằng Model AI**: Bot sẽ dựa trên file mô hình huấn luyện được chọn để tự động phân tích và đưa ra nước đi tốt nhất.
