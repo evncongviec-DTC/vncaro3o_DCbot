@@ -1012,11 +1012,11 @@ class BotWindow(QMainWindow):
             base_path = sys._MEIPASS
         else:
             base_path = os.path.abspath(".")
-        path = os.path.join(base_path, 'index.html')
+        path = os.path.join(base_path, 'Xemlichsu.html')
         if os.path.exists(path):
             webbrowser.open('file://' + path)
         else:
-            QMessageBox.warning(self, "Lỗi", "Không tìm thấy file index.html")
+            QMessageBox.warning(self, "Lỗi", "Không tìm thấy file Xemlichsu.html")
     def choose_engine(self):
         path, _ = QFileDialog.getOpenFileName(self, "Chọn file Engine .exe", "", "Executable Files (*.exe);;All Files (*)")
         if path:
