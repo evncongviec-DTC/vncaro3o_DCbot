@@ -826,23 +826,6 @@ class BotWindow(QMainWindow):
         self.lbl_engine.setStyleSheet("color: #28a745; font-weight: bold;")
         he.addWidget(self.btn_engine); he.addWidget(self.lbl_engine)
         l2.addLayout(he)
-        h_visits = QHBoxLayout()
-        self.lbl_max_visits = QLabel("Số vòng nghĩ tối đa:")
-        self.spin_max_visits = NoScrollSpinBox()
-        self.spin_max_visits.setRange(10, 50000)
-        self.spin_max_visits.setValue(500)
-        self.spin_max_visits.setSingleStep(50)
-        self.spin_max_visits.setFixedWidth(80)
-        self.spin_max_visits.setFocusPolicy(Qt.StrongFocus)
-        self.spin_max_visits.setStyleSheet("font-size:16px; font-weight:bold;")
-        self.btn_apply_visits = QPushButton("Áp dụng")
-        self.btn_apply_visits.setStyleSheet("color: #ff5500; font-weight: bold;")
-        self.btn_apply_visits.clicked.connect(self.apply_max_visits)
-        h_visits.addWidget(self.lbl_max_visits)
-        h_visits.addWidget(self.spin_max_visits)
-        h_visits.addWidget(self.btn_apply_visits)
-        h_visits.addStretch()
-        l2.addLayout(h_visits)
         h_lv = QHBoxLayout()
         h_lv.addWidget(QLabel("Cấp độ AI:"))
         self.spin_level = NoScrollSpinBox()
@@ -1036,7 +1019,7 @@ class BotWindow(QMainWindow):
                 self.append_log(f"\n[!] Đang nạp {name}... (Quá trình này mất 1-3 phút. NẾU BỊ TREO/NOT RESPONDING SẾP CỨ ĐỂ YÊN NHÉ, NÓ ĐANG NẠP VÀO CARD ĐỒ HỌA!)")
                 QApplication.processEvents()  
                 self.bot.model_path = path
-                success = self.bot.engine.load_model(path, max_visits=self.spin_max_visits.value())
+                success = self.bot.engine.load_model(path)
                 if success:
                     self.bot.model_name = name.replace('model_','').replace('.bin.gz','')
                     self.lbl_model.setText(name)
@@ -1044,15 +1027,7 @@ class BotWindow(QMainWindow):
                 else:
                     self.append_log(f"[LỖI] KHÔNG THỂ nạp Não. Đảm bảo thư mục 'engine' chứa caro20x_opencl.exe nằm CÙNG CHỖ với file Bot này!")
                     QMessageBox.warning(self, "Lỗi Nạp Não", "Nạp thất bại! Thiếu file engine C++ hoặc model bị lỗi.\nSếp hãy đảm bảo đã copy thư mục 'engine' để nằm chung với file Bot .exe nhé.")
-    def apply_max_visits(self):
-        if self.bot.engine and hasattr(self.bot, 'model_path') and self.bot.model_path:
-            self.append_log(f"\n[!] Đang áp dụng Sức mạnh mới (maxVisits = {self.spin_max_visits.value()})...")
-            QApplication.processEvents()
-            success = self.bot.engine.load_model(self.bot.model_path, max_visits=self.spin_max_visits.value())
-            if success:
-                self.append_log("[OK] Đã áp dụng Sức mạnh thành công!")
-        else:
-            self.append_log("\n[LỖI] Bạn chưa nạp File Não nên không thể áp dụng Sức mạnh!")
+
     def toggle_overlay(self, checked):
         if not self.bot.page:
             self.append_log("[!] Chưa kết nối Chrome!")
