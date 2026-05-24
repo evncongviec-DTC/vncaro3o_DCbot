@@ -915,7 +915,7 @@ class BotWindow(QMainWindow):
         self.txt_chat.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.txt_chat.setStyleSheet("background:#2d2d2d;color:#ffffff;font-family:Consolas;font-size:13px;")
         self.txt_chat.setPlaceholderText("LỊCH SỬ CHAT SẼ HIỆN Ở ĐÂY...")
-        self.txt_chat.setMinimumHeight(50)
+        self.txt_chat.setMinimumHeight(150)
         self.logs_v_splitter.addWidget(self.txt_chat)
         self.logs_v_splitter.setSizes([300, 300])
         lay.addWidget(self.logs_v_splitter)
