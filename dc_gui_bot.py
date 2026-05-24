@@ -610,6 +610,19 @@ class BotThread(QThread):
                     if self.last_board is None:
                         self.last_board = board.copy()
                         self.move_history = []
+                        init_moves_x = [(r, c, 1) for r in range(19) for c in range(19) if board[r, c] == 1]
+                        init_moves_o = [(r, c, -1) for r in range(19) for c in range(19) if board[r, c] == -1]
+                        init_turn = 1
+                        while init_moves_x or init_moves_o:
+                            if init_turn == 1 and init_moves_x:
+                                self.move_history.append(init_moves_x.pop(0))
+                                init_turn = -1
+                            elif init_turn == -1 and init_moves_o:
+                                self.move_history.append(init_moves_o.pop(0))
+                                init_turn = 1
+                            else:
+                                if init_moves_x: self.move_history.append(init_moves_x.pop(0))
+                                if init_moves_o: self.move_history.append(init_moves_o.pop(0))
                         self.pkl_history = []
                         try:
                             page.evaluate("window.botMoveHistory = []; if(window.drawAllNumbers) window.drawAllNumbers();")

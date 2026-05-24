@@ -217,6 +217,11 @@
                     <button class="btn-sm" onclick="doAction('next')">⏭ Tiến</button>
                     <button class="btn-sm btn-orange" onclick="doAction('next3')">+3 ⏩</button>
                 </div>
+                <div id="chat-history-container" style="display: none; margin-top: 5px;">
+                    <h4 style="margin: 0 0 3px 0; font-size: 13px;">Lịch sử Chat</h4>
+                    <div id="chat-log" style="background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px; font-family: Tahoma, sans-serif; font-size: 12px; overflow-y: auto; text-align: left; height: 100px; white-space: pre-wrap; line-height: 1.4;">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -583,6 +588,17 @@
             `;
         } else {
             matchInfoEl.innerHTML = '';
+        }
+
+        let chatLogEl = document.getElementById('chat-log');
+        let chatContainerEl = document.getElementById('chat-history-container');
+        let chatMatch = text.match(/Lịch sử Chat:\s*([\s\S]*?)(?=Log Game:)/);
+        if (chatMatch && chatMatch[1].trim()) {
+            chatLogEl.textContent = chatMatch[1].trim();
+            chatContainerEl.style.display = 'block';
+        } else {
+            chatLogEl.textContent = '';
+            chatContainerEl.style.display = 'none';
         }
 
         if (!text) {
