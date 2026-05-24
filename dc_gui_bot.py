@@ -158,7 +158,11 @@ class BotThread(QThread):
                 f.write(f"Kết quả: {result}\n")
                 f.write(f"Player X (Đen): {px_name_val} ({px_elo_val})\n")
                 f.write(f"Player O (Trắng): {po_name_val} ({po_elo_val})\n")
-                f.write(f"MCTS: {self.simulations} sims, {self.mcts_time}s\n\n")
+                f.write(f"MCTS: {self.simulations} sims, {self.mcts_time}s\n")
+                rec_count = getattr(self, 'reconstructed_moves_count', 0)
+                if rec_count > 0:
+                    f.write(f"Bắt đầu xem từ nước: {rec_count + 1}\n")
+                f.write("\n")
                 if self.chat_history:
                     f.write("Lịch sử Chat:\n")
                     for chat_line in self.chat_history:
@@ -480,6 +484,7 @@ class BotThread(QThread):
                                 self.save_match_log(board, "RESET / VÁN MỚI")
                             self.move_history.clear()
                             self.chat_history.clear()
+                            self.reconstructed_moves_count = 0
                             if hasattr(self, 'last_logged_msg'): delattr(self, 'last_logged_msg')
                             self.history_signal.emit(self.move_history, self.engine.board_size if self.engine else 20)
                             self.pkl_history.clear()
@@ -612,6 +617,7 @@ class BotThread(QThread):
                         self.move_history = []
                         init_moves_x = [(r, c, 1) for r in range(19) for c in range(19) if board[r, c] == 1]
                         init_moves_o = [(r, c, -1) for r in range(19) for c in range(19) if board[r, c] == -1]
+                        self.reconstructed_moves_count = len(init_moves_x) + len(init_moves_o)
                         init_turn = 1
                         while init_moves_x or init_moves_o:
                             if init_turn == 1 and init_moves_x:

@@ -579,11 +579,24 @@
         let pXMatch = text.match(/Player X \(Đen\):\s*(.+?)\s*\((.+?)\)/);
         let pOMatch = text.match(/Player O \(Trắng\):\s*(.+?)\s*\((.+?)\)/);
         let matchInfoEl = document.getElementById('match-info');
+        let reconstructMatch = text.match(/Bắt đầu xem từ nước:\s*(\d+)/);
+        if (reconstructMatch) {
+            window.reconstructedMoveCount = parseInt(reconstructMatch[1]) - 1;
+        } else {
+            window.reconstructedMoveCount = 0;
+        }
+
+        let warningHtml = "";
+        if (window.reconstructedMoveCount > 0) {
+            warningHtml = `<div style="color: #d97706; font-size: 11px; margin-top: 6px; font-weight: bold; background: #fef3c7; padding: 4px; border-radius: 3px;">⚠️ Lưu ý: Nước 1-${window.reconstructedMoveCount} được sắp xếp tự động vì Bot kết nối giữa trận.</div>`;
+        }
+
         if (pXMatch && pOMatch) {
             matchInfoEl.innerHTML = `
                 <div style="font-size:14px; margin-bottom: 10px; background:#f0f9ff; padding:10px; border-radius:5px; text-align: left;">
                     <div style="color: #333;"><b>⚫ X (Đen):</b> ${pXMatch[1]} <i>(Elo: ${pXMatch[2]})</i></div>
                     <div style="color: #333; margin-top: 4px;"><b>⚪ O (Trắng):</b> ${pOMatch[1]} <i>(Elo: ${pOMatch[2]})</i></div>
+                    ${warningHtml}
                 </div>
             `;
         } else {
@@ -696,6 +709,9 @@
         
         // Thêm thông tin replay vào log
         let statusMsg = `<br><em style="color:#666">Nước ${currentReplayIndex}/${replayMoves.length}</em>`;
+        if (window.reconstructedMoveCount && currentReplayIndex <= window.reconstructedMoveCount && window.reconstructedMoveCount > 0 && currentReplayIndex > 0) {
+            statusMsg += `<br><span style="color:#d97706; font-size:11px; font-weight:bold;">⚠️ Đang ở khu vực tự động mô phỏng (Nước 1-${window.reconstructedMoveCount})</span>`;
+        }
         if (currentReplayIndex === replayMoves.length && replayMoves.length > 0) {
             let lastMove = moveHistory[moveHistory.length - 1];
             if (checkWin(lastMove.r, lastMove.c, lastMove.p)) {
