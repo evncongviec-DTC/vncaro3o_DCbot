@@ -102,7 +102,12 @@ class DCEngine:
         # Trích xuất tên file engine để in log cho rõ ràng
         engine_name = os.path.basename(self.exe_path)
         print(f"🤖 Đang khởi động {engine_name} với model: {model_path} ...")
-        cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gtp.cfg")
+        import sys
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        cfg_path = os.path.join(base_dir, "gtp.cfg")
         
         if max_visits is not None and os.path.exists(cfg_path):
             try:

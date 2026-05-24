@@ -68,6 +68,7 @@ class PonderThread(threading.Thread):
 # =============================================
 class BotThread(QThread):
     log_signal = pyqtSignal(str)
+    chat_signal = pyqtSignal(str)
     side_detected = pyqtSignal(bool) # Mới: signal để cập nhật giao diện (True=X, False=O)
     history_signal = pyqtSignal(list, int) # Mới: signal để gửi lịch sử nước đi (move_history, board_size)
     stopped_signal = pyqtSignal()
@@ -87,6 +88,7 @@ class BotThread(QThread):
         self.neutral_cells = []
         self.move_history = []
         self.pkl_history = []
+        self.chat_history = []
         self.last_mcts_policy = None  # MCTS policy distribution cho nước vừa đánh
         self.last_board = None
         self.phan_tich_ngam_thread = None  # Phân tích ngầm
@@ -98,7 +100,21 @@ class BotThread(QThread):
     def log(self, text):
         self.log_signal.emit(text)
 
+    def handle_incoming_chat(self, msg):
+        # Deduplicate before saving and emitting
+        if ':' in msg:
+            parts = msg.split(':', 1)
+            text_part = parts[1].strip()
+        else:
+            text_part = msg.strip()
+            
+        if not hasattr(self, 'last_logged_msg') or self.last_logged_msg != text_part:
+            self.last_logged_msg = text_part
+            self.chat_history.append(msg)
+            self.chat_signal.emit(msg)
+
     # --- Lưu file Log & PKL ---
+
     def save_match_log(self, board, result, opp_elo=""):
         os.makedirs("logs", exist_ok=True)
         ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -146,8 +162,35 @@ class BotThread(QThread):
         except Exception as e:
             self.log(f"❌ Lỗi SGF: {e}")
 
-        # Xuất TXT (định dạng Lavender)
-        txt_fn = f"logs/vncaro_match_{ts}{model_str}{elo_str}.txt"
+        # Lấy thông tin người chơi
+        px_name_val, px_elo_val = "Unknown", "?"
+        po_name_val, po_elo_val = "Unknown", opp_elo if opp_elo else "?"
+        if hasattr(self, 'page') and self.page:
+            try:
+                info = self.page.evaluate('''() => {
+                    let px_n = document.getElementById('px-name');
+                    let px_e = document.getElementById('px-elo');
+                    let po_n = document.getElementById('po-name');
+                    let po_e = document.getElementById('po-elo');
+                    return {
+                        px_name: px_n ? px_n.innerText.trim() : "Unknown",
+                        px_elo: px_e ? px_e.innerText.trim() : "?",
+                        po_name: po_n ? po_n.innerText.trim() : "Unknown",
+                        po_elo: po_e ? po_e.innerText.trim() : "?"
+                    };
+                }''')
+                px_name_val, px_elo_val = info['px_name'], info['px_elo']
+                po_name_val, po_elo_val = info['po_name'], info['po_elo']
+            except: pass
+
+        def clean_fn(s):
+            return "".join(c for c in s if c.isalnum() or c in (' ', '-', '_')).strip().replace(' ', '_')
+            
+        px_str = f"{clean_fn(px_name_val)}_{clean_fn(px_elo_val)}"
+        po_str = f"{clean_fn(po_name_val)}_{clean_fn(po_elo_val)}"
+        
+        # Xuất TXT
+        txt_fn = f"logs/[X]_{px_str}_vs_[O]_{po_str}_{ts}{model_str}.txt"
         try:
             with open(txt_fn, 'w', encoding='utf-8') as f:
                 neutral_1d = [r*20+c+1 for r,c in self.neutral_cells]
@@ -156,8 +199,16 @@ class BotThread(QThread):
                     p_str = 'X' if m[2] == 1 else 'O'
                     moves_str.append(f"{i+1}.{p_str}:{m[0]*20+m[1]+1}")
                 f.write(f"Kết quả: {result}\n")
-                f.write(f"Đối thủ ELO: {opp_elo}\n")
+                f.write(f"Player X (Đen): {px_name_val} ({px_elo_val})\n")
+                f.write(f"Player O (Trắng): {po_name_val} ({po_elo_val})\n")
                 f.write(f"MCTS: {self.simulations} sims, {self.mcts_time}s\n\n")
+                
+                if self.chat_history:
+                    f.write("Lịch sử Chat:\n")
+                    for chat_line in self.chat_history:
+                        f.write(f"  {chat_line}\n")
+                    f.write("\n")
+                    
                 f.write(f"Log Game: Trung lập: {neutral_1d} | Nước đi: {' -> '.join(moves_str)}\n\n")
                 f.write("Bàn cờ cuối:\n")
                 for r in range(19):
@@ -313,6 +364,54 @@ class BotThread(QThread):
             
             self.page = page  # Lưu reference cho GUI (overlay)
 
+            # Bắt đầu nghe lén Chat
+            try:
+                try:
+                    browser_context.expose_function("python_chat_receiver", lambda msg: self.handle_incoming_chat(msg))
+                except Exception:
+                    pass
+                self.page.evaluate('''() => {
+                    if (window._chatObs) return;
+                    window._chatObs = new MutationObserver((mutations) => {
+                        mutations.forEach(m => {
+                            m.addedNodes.forEach(n => {
+                                if (n.nodeType === 1) {
+                                    let txt = n.innerText || "";
+                                    txt = txt.trim();
+                                    if (txt.includes(":") && txt.length > 2 && txt.length < 150) {
+                                        if (txt.includes("ELO") || txt.includes("sims") || txt.includes("đang xem")) return;
+                                        if (txt.split('\\n').length > 3) return; 
+                                        
+                                        if (!window._lastChats) window._lastChats = [];
+                                        if (!window._lastChats.includes(txt)) {
+                                            window._lastChats.push(txt);
+                                            if (window._lastChats.length > 20) window._lastChats.shift();
+                                            
+                                            if (window.python_chat_receiver) {
+                                                window.python_chat_receiver(txt);
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    });
+                    window._chatObs.observe(document.body, { childList: true, subtree: true });
+                    
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' && e.target && (e.target.tagName === 'INPUT' || e.target.id === 'ci')) {
+                            let val = e.target.value;
+                            if (val && val.trim().length > 0) {
+                                if (window.python_chat_receiver) {
+                                    window.python_chat_receiver("Tôi: " + val.trim());
+                                }
+                            }
+                        }
+                    }, true);
+                }''')
+            except Exception as e:
+                self.log(f"Lỗi khởi tạo bắt Chat: {e}")
+
             self.log("\n>>> SẴN SÀNG! VUI LÒNG BẤM [BẮT ĐẦU] Ở BÊN TRÁI <<<\n")
 
             prev_total_moves = -1  # Theo dõi tổng quân để biết đối thủ đã đi chưa
@@ -462,6 +561,8 @@ class BotThread(QThread):
                                 self.save_match_log(board, "RESET / VÁN MỚI")
                                 
                             self.move_history.clear()
+                            self.chat_history.clear()
+                            if hasattr(self, 'last_logged_msg'): delattr(self, 'last_logged_msg')
                             self.history_signal.emit(self.move_history, self.engine.board_size if self.engine else 20)
                             self.pkl_history.clear()
                             self.play_as_x = True
@@ -473,6 +574,8 @@ class BotThread(QThread):
                                 self.save_match_log(board, "RESET / VÁN MỚI")
                                 
                             self.move_history.clear()
+                            self.chat_history.clear()
+                            if hasattr(self, 'last_logged_msg'): delattr(self, 'last_logged_msg')
                             self.history_signal.emit(self.move_history, self.engine.board_size if self.engine else 20)
                             self.pkl_history.clear()
                             self.play_as_x = False
@@ -717,7 +820,7 @@ class BotThread(QThread):
                     my_char = 'X' if self.play_as_x else 'O'
                     player_to_move = 1 if is_x_turn else -1
 
-                    self.log(f"\n[▶] LƯỢT BOT ({my_char}). Đang suy nghĩ tối đa {int(self.mcts_time)}s...")
+                    self.log(f"[▶] LƯỢT BOT ({my_char}). Đang suy nghĩ tối đa {int(self.mcts_time)}s...")
                     game = CaroGame(rule_type=self.engine.rule_type)
                     game.board = board.copy()
                     game.neutral_cells = neutral
@@ -805,7 +908,7 @@ class BotThread(QThread):
                     self.last_mcts_policy = info.get('mcts_policy', None)
                     
                     # Chốt nước thật
-                    self.log("  ✅ CHỐT!\n")
+                    self.log("  ✅ CHỐT!")
                     cells[action].evaluate("node => node.click()")
                     time.sleep(0.8)
                     prev_total_moves = total_moves + 1
@@ -1005,8 +1108,26 @@ class BotWindow(QMainWindow):
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(self.txt_log)
         splitter.addWidget(self.txt_history)
-        splitter.setSizes([600, 300])  # Tỷ lệ 2/3 và 1/3
-        lay.addWidget(splitter)
+        
+        self.logs_v_splitter = QSplitter(Qt.Vertical)
+        
+        log_h_splitter = QSplitter(Qt.Horizontal)
+        log_h_splitter.addWidget(self.txt_log)
+        log_h_splitter.addWidget(self.txt_history)
+        log_h_splitter.setSizes([600, 300])
+        self.logs_v_splitter.addWidget(log_h_splitter)
+        
+        # Chat Panel
+        self.txt_chat = QTextEdit()
+        self.txt_chat.setReadOnly(True)
+        self.txt_chat.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.txt_chat.setStyleSheet("background:#2d2d2d;color:#ffffff;font-family:Consolas;font-size:13px;")
+        self.txt_chat.setPlaceholderText("LỊCH SỬ CHAT SẼ HIỆN Ở ĐÂY...")
+        self.txt_chat.setMinimumHeight(50)
+        self.logs_v_splitter.addWidget(self.txt_chat)
+        self.logs_v_splitter.setSizes([300, 300])
+        
+        lay.addWidget(self.logs_v_splitter)
 
         # Live update signals
         for w in [self.chk_autofarm, self.rb_x, self.rb_o]:
@@ -1018,6 +1139,7 @@ class BotWindow(QMainWindow):
         self.bot.log_signal.connect(self.append_log)
         self.bot.history_signal.connect(self.update_history_ui)
         self.bot.side_detected.connect(self.update_side_ui)
+        self.bot.chat_signal.connect(self.append_chat)
         self.bot.stopped_signal.connect(self.bot_stopped)
         
         # Initialize UI state based on mode
@@ -1241,7 +1363,26 @@ class BotWindow(QMainWindow):
         self.btn_go.setStyleSheet("background:#28a745;color:white;font-weight:bold;font-size:18px;padding:15px;")
         self.append_log("\n[⏸️] DỪNG BOT!")
 
+    def append_chat(self, text):
+        from PyQt5.QtWidgets import QTextEdit
+        from PyQt5.QtGui import QTextCursor
+        self.txt_chat.moveCursor(QTextCursor.End)
+        if ':' in text:
+            parts = text.split(':', 1)
+            name = parts[0].strip()
+            msg = parts[1].strip()
+            
+            if name.lower() == 'tôi':
+                color = '#00ff00'
+            else:
+                color = '#ffaa00'
+            self.txt_chat.insertHtml(f"<b style='color:{color}'>{name}:</b> <span style='color:white'>{msg}</span><br>")
+        else:
+            self.txt_chat.insertHtml(f"<span style='color:white'>{text}</span><br>")
+        self.txt_chat.moveCursor(QTextCursor.End)
+
     def append_log(self, text):
+
         if text == "CMD_FORCE_MANUAL":
             self.cb_mode.setCurrentIndex(0) # Chuyển sang Chơi thủ công
             return

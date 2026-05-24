@@ -81,6 +81,11 @@
             width: 18px;
             height: 18px;
         }
+        .board-3d .neutral {
+            background-color: #ef4444;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            border-radius: 4px;
+        }
         .x-piece {
             color: var(--x-color);
             font-size: 20px;
@@ -152,7 +157,36 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
-    </style>
+    
+        .stone-black {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+            box-shadow: 2px 2px 3px rgba(0,0,0,0.4);
+            z-index: 2;
+        }
+        .stone-white {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            box-shadow: 2px 2px 3px rgba(0,0,0,0.4);
+            border: 1px solid #aaa;
+            z-index: 2;
+        }
+        .board-3d {
+            background-color: #e3c498; /* Màu gỗ */
+            border: 2px solid #8b5a2b;
+        }
+        .board-3d .cell {
+            border: 1px solid #c29d6d;
+        }
+        .board-3d .cell-id {
+            color: #0056b3; /* Xanh lam đậm cho dễ nhìn trên nền gỗ */
+            font-weight: bold;
+        }
+</style>
 </head>
 <body>
 
@@ -162,6 +196,7 @@
     </div>
     <div class="panel">
         <div class="status-box">
+            <div id="match-info"></div>
             <h2>Lượt đi: <span id="turn-indicator" class="turn-x">X</span></h2>
             <div class="timer" id="timer">60s</div>
         </div>
@@ -172,8 +207,8 @@
             </div>
             <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
                 <div style="display: flex; gap: 5px;">
-                    <input type="text" id="log-input" placeholder="Dán log game từ Colab..." style="flex-grow: 1; padding: 5px; font-size: 11px; border: 1px solid #ccc; border-radius: 4px;">
-                    <button class="btn-sm" onclick="loadLogForReplay()">Tải Log</button>
+                    <input type="file" id="log-file-input" accept=".txt" style="display: none;" onchange="handleFileUpload(event)">
+                    <button class="btn-sm" onclick="document.getElementById('log-file-input').click()" style="width: 100%; font-weight: bold; line-height: 1.2;">Tải file txt (thư mục log)<br>lịch sử ván đấu</button>
                 </div>
                 <div id="replay-controls" class="undo-bar">
                     <button class="btn-sm btn-orange" onclick="doAction('prev3')">⏪ -3</button>
@@ -185,7 +220,12 @@
             </div>
         </div>
 
-        <button onclick="resetGame()">Chơi lại (Random Ô trung lập)</button>
+        <button id="branch-btn" onclick="toggleBranch()" style="background-color: #8b5cf6; color: white; width: 100%; border-radius: 4px; padding: 8px; font-weight: bold; border: none; cursor: pointer; margin-bottom: 5px;">🔀 Bật Rẽ nhánh (Thử nước)</button>
+        <div style="margin-top: 10px;">
+            <label style="cursor: pointer; font-weight: bold;">
+                <input type="checkbox" id="chk-3d" onchange="toggle3DMode()"> Giao diện Gomoku (3D)
+            </label>
+        </div>
         <div style="font-size: 0.85rem; color: #666;">
             <strong>Luật chơi:</strong><br>
             1. X đi trước, cạnh ô trung lập.<br>
@@ -205,6 +245,18 @@
     let gameOver = false;
     let timeLeft = 60;
     let timerInterval;
+    
+    let is3DMode = false;
+    function toggle3DMode() {
+        is3DMode = document.getElementById('chk-3d').checked;
+        if (is3DMode) {
+            boardEl.classList.add('board-3d');
+        } else {
+            boardEl.classList.remove('board-3d');
+        }
+        render();
+    }
+
     let boardInitialized = false;
     let isReplayMode = false;
 
@@ -274,15 +326,26 @@
                 cell.innerHTML = '';
                 cell.className = 'cell';
                 
+                let moveIndex = moveHistory.findIndex(m => m.r === r && m.c === c) + 1;
+                let moveNumHTML = moveIndex > 0 ? moveIndex : '';
+                
                 if (val === -1) {
-                    // Neutral: không hiện số
+                    // Neutral
                     cell.innerHTML = '<div class="neutral"></div>';
                 } else if (val === 1) {
-                    cell.innerHTML = `<span class="cell-id">${cellId}</span><span class="x-piece">X</span>`;
+                    if (is3DMode) {
+                        cell.innerHTML = `<div class="stone-black"><span style="color:white; font-size:12px; font-weight:bold; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:4;">${moveNumHTML}</span></div>`;
+                    } else {
+                        cell.innerHTML = `<span class="cell-id">${cellId}</span><span class="x-piece">X</span>`;
+                    }
                 } else if (val === 2) {
-                    cell.innerHTML = `<span class="cell-id">${cellId}</span><span class="o-piece">O</span>`;
+                    if (is3DMode) {
+                        cell.innerHTML = `<div class="stone-white"><span style="color:black; font-size:12px; font-weight:bold; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:4;">${moveNumHTML}</span></div>`;
+                    } else {
+                        cell.innerHTML = `<span class="cell-id">${cellId}</span><span class="o-piece">O</span>`;
+                    }
                 } else {
-                    // Ô trống: hiện số ID nhỏ
+                    // Ô trống
                     cell.innerHTML = `<span class="cell-id">${cellId}</span>`;
                 }
 
@@ -323,6 +386,21 @@
     }
 
     function handleCellClick(r, c) {
+        if (isReplayMode) {
+            if (!isBranching) return; // Nếu không rẽ nhánh thì không được click
+            if (board[r][c] !== 0) return;
+            
+            // Tính toán người chơi hiện tại dựa trên Log gốc + nhánh
+            let currentP = 1; // 1=X, 2=O
+            for (let i = 0; i < currentReplayIndex; i++) currentP = currentP === 1 ? 2 : 1;
+            for (let i = 0; i < branchMoves.length; i++) currentP = currentP === 1 ? 2 : 1;
+            
+            board[r][c] = currentP;
+            branchMoves.push({r, c, p: currentP});
+            renderReplayState();
+            return;
+        }
+
         if (gameOver || board[r][c] !== 0) return;
 
         // Luật 1: X1 phải cạnh neutral
@@ -381,7 +459,7 @@
         for (let i = 0; i < moveHistory.length; i++) {
             let m = moveHistory[i];
             let pName = m.p === 1 ? '<span class="turn-x">X</span>' : '<span class="turn-o">O</span>';
-            logHtml += `${i + 1}. ${pName}: ${m.id}<br>`;
+            logHtml += m.isBranch ? `<em style="color:#8b5cf6">${i + 1}. ${pName}: Rẽ nhánh</em><br>` : `${i + 1}. ${pName}: ${m.id}<br>`;
         }
         
         logEl.innerHTML = logHtml;
@@ -440,13 +518,38 @@
         undoStack = [];
         
         initBoard();
-        generateNeutralCells();
+        // generateNeutralCells();
         updateMoveLog();
         render();
         resetTimer();
         timerInterval = setInterval(updateTimer, 1000);
     }
     
+    
+    let isBranching = false;
+    let branchMoves = [];
+    
+    function toggleBranch() {
+        if (!isReplayMode) {
+            alert("Chỉ khả dụng khi đang xem lại Log!");
+            return;
+        }
+        isBranching = !isBranching;
+        const btn = document.getElementById('branch-btn');
+        if (isBranching) {
+            if (isReplaying) toggleReplay(); // Tạm dừng nếu đang chạy
+            btn.innerHTML = "🔀 Đang Rẽ nhánh (Bấm để Tắt)";
+            btn.style.backgroundColor = "#ef4444"; // Đỏ để báo hiệu đang bật
+            branchMoves = []; // Khởi tạo mảng lưu nước đi rẽ nhánh
+            renderReplayState(); // Cập nhật lại bàn cờ hiện tại
+        } else {
+            btn.innerHTML = "🔀 Bật Rẽ nhánh (Thử nước)";
+            btn.style.backgroundColor = "#8b5cf6"; // Trở lại Tím
+            branchMoves = [];
+            renderReplayState(); // Xóa các nước rẽ nhánh, khôi phục gốc
+        }
+    }
+
     // --- Replay Log ---
     let replayInterval = null;
     let replayMoves = [];
@@ -454,21 +557,47 @@
     let currentReplayIndex = 0;
     let isReplaying = false;
 
-    function loadLogForReplay() {
-        const logText = document.getElementById('log-input').value.trim();
-        if (!logText) {
-            alert("Vui lòng dán chuỗi log từ Colab vào ô trống!");
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            processLogText(content);
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function processLogText(text) {
+        // Parse thong tin nguoi choi
+        let pXMatch = text.match(/Player X \(Đen\):\s*(.+?)\s*\((.+?)\)/);
+        let pOMatch = text.match(/Player O \(Trắng\):\s*(.+?)\s*\((.+?)\)/);
+        let matchInfoEl = document.getElementById('match-info');
+        if (pXMatch && pOMatch) {
+            matchInfoEl.innerHTML = `
+                <div style="font-size:14px; margin-bottom: 10px; background:#f0f9ff; padding:10px; border-radius:5px; text-align: left;">
+                    <div style="color: #333;"><b>⚫ X (Đen):</b> ${pXMatch[1]} <i>(Elo: ${pXMatch[2]})</i></div>
+                    <div style="color: #333; margin-top: 4px;"><b>⚪ O (Trắng):</b> ${pOMatch[1]} <i>(Elo: ${pOMatch[2]})</i></div>
+                </div>
+            `;
+        } else {
+            matchInfoEl.innerHTML = '';
+        }
+
+        if (!text) {
+            alert("File log rỗng hoặc không hợp lệ!");
             return;
         }
         
         try {
-            const neutralMatch = logText.match(/Trung lập: \[([\d, ]+)\]/);
+            const neutralMatch = text.match(/Trung lập: \[([\d, ]+)\]/);
             replayNeutralIds = [];
             if (neutralMatch) {
                 replayNeutralIds = neutralMatch[1].split(',').map(s => parseInt(s.trim()));
             }
             
-            const movesMatch = logText.match(/Nước đi: (.*)/);
+            const movesMatch = text.match(/Nước đi: (.*)/);
             replayMoves = [];
             if (movesMatch) {
                 const moveParts = movesMatch[1].split('->');
@@ -527,8 +656,27 @@
             currentP = currentP === 1 ? 2 : 1;
         }
         
+        // Render thêm các nước rẽ nhánh
+        for (let i = 0; i < branchMoves.length; i++) {
+            let bm = branchMoves[i];
+            board[bm.r][bm.c] = bm.p;
+            moveHistory.push({r: bm.r, c: bm.c, p: bm.p, id: "Nhánh", isBranch: true});
+        }
+        
         updateMoveLog();
         render();
+        
+        // Đánh dấu trực quan các ô rẽ nhánh
+        if (isBranching) {
+            for (let i = 0; i < branchMoves.length; i++) {
+                let bm = branchMoves[i];
+                let cell = document.getElementById(`cell-${bm.r}-${bm.c}`);
+                if (cell) {
+                    cell.style.boxShadow = "inset 0 0 10px rgba(139, 92, 246, 0.8)"; // Màu tím báo hiệu rẽ nhánh
+                    cell.style.backgroundColor = "#f3e8ff";
+                }
+            }
+        }
         
         // Thêm thông tin replay vào log
         let statusMsg = `<br><em style="color:#666">Nước ${currentReplayIndex}/${replayMoves.length}</em>`;
@@ -553,6 +701,20 @@
     // === HÀNH ĐỘNG CHUNG cho cả 2 chế độ ===
     function doAction(type) {
         if (isReplayMode) {
+            if (isBranching && type === 'prev') {
+                if (branchMoves.length > 0) {
+                    branchMoves.pop();
+                    renderReplayState();
+                } else {
+                    // Tắt rẽ nhánh nếu đã lùi hết nhánh
+                    toggleBranch();
+                }
+                return;
+            }
+            if (isBranching) {
+                alert("Đang rẽ nhánh! Hãy tắt rẽ nhánh để tua log chính.");
+                return;
+            }
             // Chế độ replay log
             if (type === 'prev') replayPrev();
             else if (type === 'next') replayNext();
