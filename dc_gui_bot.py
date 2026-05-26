@@ -967,7 +967,7 @@ class BotWindow(QMainWindow):
                 r, c = m[:2]
                 p = 1 if i % 2 == 0 else -1
             p_str = "X" if p == 1 else "O"
-            idx = r * board_size + c
+            idx = r * 20 + c + 1
             col_letter = letters[c] if c < len(letters) else "?"
             row_num = board_size - r
             gtp_move = f"{col_letter}{row_num}"
