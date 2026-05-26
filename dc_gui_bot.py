@@ -180,6 +180,33 @@ class BotThread(QThread):
             self.log(f"💾 Xuất TXT: {txt_fn}")
         except Exception as e:
             self.log(f"❌ Lỗi TXT: {e}")
+            
+        sgf_fn = f"logs/[X]_{px_str}_vs_[O]_{po_str}_{ts}{model_str}.sgf"
+        try:
+            with open(sgf_fn, 'w', encoding='utf-8') as f:
+                f.write("(;GM[1]FF[4]CA[UTF-8]AP[DC_bot_WebBot]SZ[19]\n")
+                if winner_player == 1:
+                    re_str = "B+Resign" if self.play_as_x else "W+Resign"
+                elif winner_player == -1:
+                    re_str = "W+Resign" if self.play_as_x else "B+Resign"
+                else:
+                    re_str = "0"
+                f.write(f"PB[{px_name_val} ({px_elo_val})]PW[{po_name_val} ({po_elo_val})]RE[{re_str}]DT[{datetime.datetime.now().strftime('%Y-%m-%d')}]\n")
+                if len(self.neutral_cells) > 0:
+                    nc_strs = [f"({r},{c})" for r, c in self.neutral_cells]
+                    f.write(f"C[NeutralCells:{';'.join(nc_strs)}]\n")
+                for m in self.move_history:
+                    r, c = m[0], m[1]
+                    p = m[2]
+                    color = "B" if p == 1 else "W"
+                    col_char = chr(97 + c)
+                    row_char = chr(97 + r)
+                    f.write(f";{color}[{col_char}{row_char}]")
+                f.write(")\n")
+            self.log(f"💾 Xuất SGF: {sgf_fn}")
+        except Exception as e:
+            self.log(f"❌ Lỗi SGF: {e}")
+
         self.pkl_history = []
         self.move_history = []
     def read_board(self, page):
